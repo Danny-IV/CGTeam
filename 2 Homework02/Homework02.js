@@ -1,10 +1,3 @@
-/*-------------------------------------------------------------------------
-06_FlipTriangle.js
-
-1) Change the color of the triangle by keyboard input
-   : 'r' for red, 'g' for green, 'b' for blue
-2) Flip the triangle vertically by keyboard input 'f' 
----------------------------------------------------------------------------*/
 import { resizeAspectRatio, setupText, updateText } from '../util/util.js';
 import { Shader, readShaderFile } from '../util/shader.js';
 
@@ -12,9 +5,7 @@ const canvas = document.getElementById('glCanvas');
 const gl = canvas.getContext('webgl2');
 let shader;
 let vao;
-let colorTag = "red";
-let verticalFlip = 1.0; // 1.0 for normal, -1.0 for vertical flip
-let textOverlay3; // for text output third line (see util.js)
+let moveVec2 = [0.0, 0.0];
 
 function initWebGL() {
     if (!gl) {
@@ -22,15 +13,15 @@ function initWebGL() {
         return false;
     }
 
-    canvas.width = 700;
-    canvas.height = 700;
+    canvas.width = 600;
+    canvas.height = 600;
 
     resizeAspectRatio(gl, canvas);
 
     // Initialize WebGL settings
     gl.viewport(0, 0, canvas.width, canvas.height);
     gl.clearColor(0.1, 0.2, 0.3, 1.0);
-    
+
     return true;
 }
 
@@ -42,34 +33,31 @@ async function initShader() {
 
 function setupKeyboardEvents() {
     document.addEventListener('keydown', (event) => {
-        if (event.key == 'f') {
-            //console.log("f key pressed");
-            updateText(textOverlay3, "f key pressed");
-            verticalFlip = -verticalFlip; 
+        if (event.key == 'ArrowUp') {
+            console.log("Up Start");
+            moveVec2[1] += 0.01;
         }
-        else if (event.key == 'r') {
-            //console.log("r key pressed");
-            updateText(textOverlay3, "r key pressed");
-            colorTag = "red";
+        else if (event.key == 'ArrowDown') {
+            console.log("Down Start");
+            moveVec2[1] -= 0.01;
         }
-        else if (event.key == 'g') {
-            //console.log("g key pressed");
-            updateText(textOverlay3, "g key pressed");
-            colorTag = "green";
+        else if (event.key == 'ArrowLeft') {
+            console.log("Left Start");
+            moveVec2[0] -= 0.01;
         }
-        else if (event.key == 'b') {
-            //console.log("b key pressed");
-            updateText(textOverlay3, "b key pressed");
-            colorTag = "blue";
+        else if (event.key == 'ArrowRight') {
+            console.log("Right Start");
+            moveVec2[0] += 0.01;
         }
     });
 }
 
 function setupBuffers(shader) {
     const vertices = new Float32Array([
-        -0.5, -0.5, 0.0,  // Bottom left
-         0.5, -0.5, 0.0,  // Bottom right
-         0.0,  0.5, 0.0   // Top center
+        -0.1, -0.1, 0.0,
+        0.1, -0.1, 0.0,
+        0.1, 0.1, 0.0,
+        -0.1, 0.1, 0.0
     ]);
 
     const vao = gl.createVertexArray();
@@ -84,27 +72,15 @@ function setupBuffers(shader) {
     return vao;
 }
 
-function render(vao, shader) {
+function render() {
     gl.clear(gl.COLOR_BUFFER_BIT);
 
-    let color;
-    if (colorTag == "red") {
-        color = [1.0, 0.0, 0.0, 1.0];
-    }
-    else if (colorTag == "green") {
-        color = [0.0, 1.0, 0.0, 1.0];
-    }
-    else if (colorTag == "blue") {
-        color = [0.0, 0.0, 1.0, 1.0];
-    }
-
-    shader.setVec4("uColor", color);
-    shader.setFloat("verticalFlip", verticalFlip);
-
     gl.bindVertexArray(vao);
-    gl.drawArrays(gl.TRIANGLES, 0, 3);
+    gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
 
-    requestAnimationFrame(() => render(vao, shader));
+    shader.setVec2("movement", moveVec2);
+
+    requestAnimationFrame(() => render());
 }
 
 async function main() {
@@ -119,19 +95,17 @@ async function main() {
         shader = await initShader();
 
         // setup text overlay (see util.js)
-        setupText(canvas, "r, g, b: change color", 1);
-        setupText(canvas, "f: flip vertically", 2);
-        textOverlay3 = setupText(canvas, "no key pressed", 3);
+        setupText(canvas, "Use arrow keys to move the rectangle", 1);
 
         // 키보드 이벤트 설정
         setupKeyboardEvents();
-        
+
         // 나머지 초기화
         vao = setupBuffers(shader);
         shader.use();
-        
+
         // 렌더링 시작
-        render(vao, shader);
+        render();
 
         return true;
 
