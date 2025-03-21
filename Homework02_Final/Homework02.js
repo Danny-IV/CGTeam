@@ -7,7 +7,7 @@ let shader = null;
 let vao = null;
 let keyPressed;
 let vertexBuffer;
-let changePosition = [0.0, 0.0];
+let squarePosition = { x: 0.0, y: 0.0 };
 
 function initWebGL() {
     if (!gl) {
@@ -57,10 +57,10 @@ function setupKeyboardEvents() {
     
 function setupBuffers(shader) {
     const vertices = new Float32Array([
-        -0.1, -0.1, 0.0,  // Bottom left
-         0.1, -0.1, 0.0,  // Bottom right
-         0.1,  0.1, 0.0,  // Top center
-        -0.1,  0.1, 0.0   // Top right
+        squarePosition.x - 0.1, squarePosition.y - 0.1, 0.0,  // Bottom left
+        squarePosition.x + 0.1, squarePosition.y - 0.1, 0.0,  // Bottom right
+        squarePosition.x + 0.1, squarePosition.y + 0.1, 0.0,  // Top center
+        squarePosition.x - 0.1, squarePosition.y + 0.1, 0.0   // Top right
     ]);
 
     vao = gl.createVertexArray();
@@ -70,37 +70,48 @@ function setupBuffers(shader) {
     gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
     gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
 
-    shader.setAttribPointer('aPos', 3, gl.FLOAT, false, 0, 0);
+    const position = gl.getAttribLocation(shader.program, "aPos");
+    if (position === -1) {
+        console.error("Attribute 'aPos' not found in shader program.");
+        return;
+    }
 
+    gl.vertexAttribPointer(position, 3, gl.FLOAT, false, 0, 0);
+    gl.enableVertexAttribArray(position);
+    
     return vao;
 }
 
-function render(vao, shader) {    
+function render(vao, shader) {
     gl.clear(gl.COLOR_BUFFER_BIT);
 
-    if (keyPressed == "up" && True) {
-        changePosition[1] += 0.1;
-    } else if (keyPressed == "down") {
-        changePosition[1] -= 0.1;
-    } else if (keyPressed == "left") {
-        changePosition[0] -= 0.1;
-    } else if (keyPressed == "right") {
-        changePosition[0] += 0.1;
+    // Move square position based on the key pressed
+    if (keyPressed == "up" && squarePosition.y < 0.8 ) {
+        squarePosition.y += 0.1;
+    } else if (keyPressed == "down" && squarePosition.y > -0.8 ) {
+        squarePosition.y -= 0.1;
+    } else if (keyPressed == "left" && squarePosition.x > -0.8 ) {
+        squarePosition.x -= 0.1;
+    } else if (keyPressed == "right" && squarePosition.x < 0.8 ) {
+        squarePosition.x += 0.1;
     }
 
-    const changePosLocation = gl.getUniformLocation(shader.program, 'changePosition');
-    gl.uniform2fv(changePosLocation, changePosition);
+    // Uniform 변수에 squarePosition 값을 전달
+    const uOffsetLocation = gl.getUniformLocation(shader.program, "uOffset");
+    gl.uniform2f(uOffsetLocation, squarePosition.x, squarePosition.y);
 
-    gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
-    gl.bufferSubData(gl.ARRAY_BUFFER, 0, updatedVertices);
-
+    // 사각형 그리기
     gl.bindVertexArray(vao);
     gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
 
+    // Reset keyPressed
     keyPressed = null;
 
+    // 다음 프레임 요청
     requestAnimationFrame(() => render(vao, shader));
 }
+
+
 
 
 async function main() {
