@@ -5,8 +5,9 @@ const canvas = document.getElementById('glCanvas');
 const gl = canvas.getContext('webgl2');
 let shader;
 let vao;
-let moveVec2 = [0.0, 0.0];
 let displacement = [0.0, 0.0];
+let keys = [];
+const speed = 0.01;
 
 function initWebGL() {
     if (!gl) {
@@ -33,29 +34,20 @@ async function initShader() {
 }
 
 function setupKeyboardEvents() {
-    const speed = 0.01;
     document.addEventListener('keydown', (event) => {
-        if (event.key == 'ArrowUp') {
-            console.log("Up Start");
-            moveVec2 = [0.0, speed];
-        }
-        else if (event.key == 'ArrowDown') {
-            console.log("Down Start");
-            moveVec2 = [0.0, -speed];
-        }
-        else if (event.key == 'ArrowLeft') {
-            console.log("Left Start");
-            moveVec2 = [-speed, 0.0];
-        }
-        else if (event.key == 'ArrowRight') {
-            console.log("Right Start");
-            moveVec2 = [speed, 0.0];
+        if (event.key == 'ArrowUp' || event.key == 'ArrowDown' || event.key == 'ArrowLeft' || event.key == 'ArrowRight') {
+            // Add event.key to keys (without reptition)
+            if (!keys.includes(event.key)) keys.push(event.key);
+            // console.log(keys);
         }
     });
     document.addEventListener('keyup', (event) => {
         if (event.key == 'ArrowUp' || event.key == 'ArrowDown' || event.key == 'ArrowLeft' || event.key == 'ArrowRight') {
-            console.log("Keboard End");
-            moveVec2 = [0.0, 0.0];
+            // Delete key
+            for (let i = 0; i < keys.length; i++) {
+                if (keys[i] == event.key) keys.splice(i, 1);
+            }
+            // console.log(keys);
         }
     });
 }
@@ -86,7 +78,15 @@ function render() {
     gl.bindVertexArray(vao);
     gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
 
-    displacement = [displacement[0] + moveVec2[0], displacement[1] + moveVec2[1]];
+    // move
+    if (keys.length > 0) {
+        if (keys[keys.length - 1] == 'ArrowUp') displacement[1] += speed;
+        else if (keys[keys.length - 1] == 'ArrowDown') displacement[1] -= speed;
+        else if (keys[keys.length - 1] == 'ArrowLeft') displacement[0] -= speed;
+        else if (keys[keys.length - 1] == 'ArrowRight') displacement[0] += speed;
+    }
+
+    // constrain
     if (displacement[0] > 0.9) {
         displacement[0] = 0.9;
     }
@@ -99,6 +99,8 @@ function render() {
     else if (displacement[1] < -0.9) {
         displacement[1] = -0.9
     }
+
+    // set
     shader.setVec2("movement", displacement);
 
     requestAnimationFrame(() => render());
