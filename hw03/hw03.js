@@ -12,11 +12,17 @@ let isDrawing = false; // mouse button을 누르고 있는 동안 true로 change
 let startPoint = null;  // mouse button을 누른 위치
 let tempEndPoint = null; // mouse를 움직이는 동안의 위치
 let lines = []; // 그려진 선분들을 저장하는 array
-let textOverlay; // 1st line segment 정보 표시
-let textOverlay2; // 2nd line segment 정보 표시
+let textOverlay; // Circle 정보 표시
+let textOverlay2; // line segment 정보 표시
+let textOverlay3; // intersection 정보 표시
 let axes = new Axes(gl, 0.85); // x, y axes 그려주는 object (see util.js)
 const numSegments = 100;
-let radius;
+let radius;       // 원의 반지름 저장
+let center = [];  // 원의 중심 좌표 저장
+let intersection = [];  // 교점 좌표 저장 [x1, y1, x2, y2]
+
+// lines의 구조 | lines[0] : 원 그리기용 점 좌표 | lines[1] : 선의 좌표
+// intersection 구조 | 교점 2개 : [x1, y1, x2, y2] | 교점 1개 : [x1, y1] | 교점 0개 : []
 
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -106,19 +112,21 @@ function setupMouseEvents() {
         if (isDrawing && tempEndPoint) {
             if (lines.length == 0) {
                 lines.push(generateCircle());
+                center.push(...startPoint);
             }
             else if (lines.length == 1) {
                 lines.push([...startPoint, ...tempEndPoint]);
             }
 
+            // circle, line segment의 정보 업데이트
             if (lines.length == 1) {
-                updateText(textOverlay, "First line segment: (" + lines[0][0].toFixed(2) + ", " + lines[0][1].toFixed(2) +
-                    ") ~ (" + lines[0][2].toFixed(2) + ", " + lines[0][3].toFixed(2) + ")");
-                updateText(textOverlay2, "Click and drag to draw the second line segment");
+                updateText(textOverlay, "Circle: center(" + center[0].toFixed(2) + ", " + center[1].toFixed(2) +
+                    ") radius = " + radius.toFixed(2));
             }
             else { // lines.length == 2
                 updateText(textOverlay2, "Second line segment: (" + lines[1][0].toFixed(2) + ", " + lines[1][1].toFixed(2) +
                     ") ~ (" + lines[1][2].toFixed(2) + ", " + lines[1][3].toFixed(2) + ")");
+                updateIntersection();
             }
 
             isDrawing = false;
@@ -137,14 +145,81 @@ function generateCircle() {
     let cirlce_line = [];
 
     radius = Math.sqrt(Math.pow(startPoint[0] - tempEndPoint[0], 2) + Math.pow(startPoint[1] - tempEndPoint[1], 2));
-    console.log(radius);
     for (let i = 0; i < numSegments; i++) {
         let angle = (i / numSegments) * 2 * Math.PI;
-        console.log(startPoint[0] + radius * Math.cos(angle), startPoint[1] + radius * Math.sin(angle));
+        // console.log(startPoint[0] + radius * Math.cos(angle), startPoint[1] + radius * Math.sin(angle));
         cirlce_line.push(startPoint[0] + radius * Math.cos(angle), startPoint[1] + radius * Math.sin(angle));
     }
     return cirlce_line;
 }
+
+function updateIntersection() {
+    let a = lines[1][2] - lines[1][0];
+    let b = lines[1][0]; 
+    let c = lines[1][3] - lines[1][1]; 
+    let d = lines[1][1];
+
+    let A = Math.pow(a, 2) + Math.pow(c, 2);
+    let B = 2 * ( a*b - a*center[0] + c*d - c*center[1] );
+    let C = Math.pow(b, 2) + Math.pow(d, 2) + Math.pow(center[0], 2) + Math.pow(center[1], 2) - Math.pow(radius, 2) - 2 * ( b*center[0] + d*center[1] );
+    let D = Math.pow(B, 2) - 4*A*C; 
+
+    let x;
+    let y;
+
+    if (D >= 0) {
+        let sqrtD = Math.sqrt(D);
+        let t1 = (-B + sqrtD) / (2*A);
+        let t2 = (-B - sqrtD) / (2*A);
+        console.log("t1: " + t1.toFixed(2) + " | t2:" + t2.toFixed(2))
+        console.log(D == 0)
+        console.log((0 <= t1 && t1 <= 1) || (0 <= t2 && t2 <= 1))
+
+        if (D > 0 && (0 <= t1 && t1 <= 1) && (0 <= t2 && t2 <= 1)) {
+            let x1 = b + t1 * a;
+            let y1 = d + t1 * c;
+            let x2 = b + t2 * a;
+            let y2 = d + t2 * c;
+
+            intersection = [x1, y1, x2, y2];
+            updateText(
+                textOverlay3,
+                `Intersection Points: 2 | Point 1: (${x1.toFixed(2)}, ${y1.toFixed(2)}) | Point 2: (${x2.toFixed(2)}, ${y2.toFixed(2)})`
+            );
+        } else if (D == 0 || ((0 <= t1 && t1 <= 1) || (0 <= t2 && t2 <= 1))) { 
+            if (0 <= t1 && t1 <= 1){
+                x = b + t1 * a;
+                y = d + t1 * c;
+            }else{
+                x = b + t2 * a;
+                y = d + t2 * c;
+            }
+            intersection = [x, y];
+
+            updateText(
+                textOverlay3,
+                `Intersection Points: 1 | Point 1: (${x.toFixed(2)}, ${y.toFixed(2)})`
+            );
+        } else {
+            updateText(textOverlay3, "No intersection");
+
+        }
+    } else {
+        updateText(textOverlay3, "No intersection");
+    }
+    
+    drawIntersection()
+}
+
+function drawIntersection() {
+    if (intersection.length == 2) {
+
+    }else if (intersection.length == 4){
+
+    }
+}
+
+
 
 function render() {
     gl.clear(gl.COLOR_BUFFER_BIT);
@@ -211,8 +286,9 @@ async function main() {
         shader.use();
 
         // 텍스트 초기화
-        textOverlay = setupText(canvas, "No line segment", 1);
-        textOverlay2 = setupText(canvas, "Click mouse button and drag to draw line segments", 2);
+        textOverlay = setupText(canvas, "", 1);
+        textOverlay2 = setupText(canvas, "", 2);
+        textOverlay3 = setupText(canvas, "", 3);
 
         // 마우스 이벤트 설정
         setupMouseEvents();
