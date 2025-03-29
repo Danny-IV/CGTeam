@@ -208,15 +208,6 @@ function updateIntersection() {
         updateText(textOverlay3, "No intersection");
     }
     
-    drawIntersection()
-}
-
-function drawIntersection() {
-    if (intersection.length == 2) {
-
-    }else if (intersection.length == 4){
-
-    }
 }
 
 
