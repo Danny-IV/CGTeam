@@ -223,13 +223,13 @@ function render() {
     let num = 0;
     for (let line of lines) {
         if (num == 0) { // 첫 번째 선분인 경우, yellow
-            shader.setVec4("u_color", [1.0, 1.0, 0.0, 1.0]);
+            shader.setVec4("u_color", [1.0, 0.0, 1.0, 1.0]);
             gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(line), gl.STATIC_DRAW);
             gl.bindVertexArray(vao);
             gl.drawArrays(gl.LINE_LOOP, 0, numSegments);
         }
         else { // num == 1 (2번째 선분인 경우), red
-            shader.setVec4("u_color", [1.0, 0.0, 1.0, 1.0]);
+            shader.setVec4("u_color", [0.0, 0.5, 0.5, 1.0]);
             gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(line), gl.STATIC_DRAW);
             gl.bindVertexArray(vao);
             gl.drawArrays(gl.LINES, 0, 2);
@@ -251,6 +251,16 @@ function render() {
             gl.drawArrays(gl.LINES, 0, 2);
         }
     }
+
+    // 교차점 그리기
+    if (intersection.length > 0) {
+        shader.setVec4("u_color", [1.0, 1.0, 0.0, 1.0]); 
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(intersection), gl.STATIC_DRAW);
+        gl.bindVertexArray(vao);
+        const numPoints = intersection.length / 2;
+        gl.drawArrays(gl.POINTS, 0, numPoints);
+    }
+    
 
     // axes 그리기
     axes.draw(mat4.create(), mat4.create()); // 두 개의 identity matrix를 parameter로 전달
