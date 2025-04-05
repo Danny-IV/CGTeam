@@ -15,6 +15,9 @@ let sunTransform;
 let earthTransform;
 let moonTransform;
 let sunRotationAngle = 0;
+let earthRotationAngle = 0;
+let earthRevolutionAngle = 0;
+
 
 document.addEventListener('DOMContentLoaded', () => {
     if (isInitialized) {
@@ -125,7 +128,9 @@ function animate(currentTime) {
 
         // 45 degree/sec 자전 (Sun)
         sunRotationAngle += Math.PI / 4 * deltaTime;
-
+        earthRotationAngle += Math.PI * deltaTime;
+        earthRevolutionAngle += Math.PI / 6 * deltaTime;
+        
         // applyTransform(currentTransformType);
     }
     render();
@@ -145,15 +150,14 @@ function render() {
     gl.bindVertexArray(vao);
 
     // TODO: delete after test
-    earthTransform = mat4.create();
     moonTransform = mat4.create();
-    mat4.translate(earthTransform, earthTransform, [-0.5, 0.0, 0]);
-    mat4.scale(earthTransform, earthTransform, [0.2, 0.2, 0]);
+
     mat4.translate(moonTransform, moonTransform, [0.5, 0.0, 0]);
     mat4.scale(moonTransform, moonTransform, [0.2, 0.2, 0]);
 
     // set sun transform
     setSunTransform();
+    setEarthTransform();
 
     // draw Sun
     shader.setMat4("u_model", sunTransform);
@@ -204,4 +208,28 @@ function setSunTransform() {
     // composite transform
     mat4.multiply(sunTransform, R, sunTransform);
     mat4.multiply(sunTransform, S, sunTransform);
+}
+
+function setEarthTransform() {
+    earthTransform = mat4.create();
+
+    // Calculate coordinates for 0.7 distance : 위치 반영 (0.7)
+    const t = 0.7;
+    const tx = t * Math.cos(earthRevolutionAngle);      // 공전 반영 (30 d/s)
+    const ty = t * Math.sin(earthRevolutionAngle);      // 공전 반영 (30 d/s)
+
+    // size scaler
+    const S = mat4.create();
+    const R = mat4.create(); 
+    const T = mat4.create();
+
+    mat4.rotate(R, R, earthRotationAngle, [0, 0, 1]);   // 자전 반영 (180 d/s)
+    mat4.scale(S, S, [0.1, 0.1, 1]);                    // 크기 반영 (0.1)
+    mat4.translate(T, T, [tx, ty, 0]);
+
+// Composite transform (RST with modified translation)
+    mat4.multiply(earthTransform, R, earthTransform);
+    mat4.multiply(earthTransform, S, earthTransform);
+    mat4.multiply(earthTransform, T, earthTransform);
+
 }
