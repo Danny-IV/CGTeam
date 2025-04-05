@@ -15,7 +15,6 @@ let sunTransform;
 let earthTransform;
 let moonTransform;
 let sunRotationAngle = 0;
-let earthRotationAngle = 0;
 let earthRevolutionAngle = 0;
 
 
@@ -124,12 +123,9 @@ function animate(currentTime) {
 
     if (isAnimating) {
         // 2초당 1회전, 즉, 1초당 180도 회전
-        rotationAngle += Math.PI * deltaTime;
-
-        // 45 degree/sec 자전 (Sun)
-        sunRotationAngle += Math.PI / 4 * deltaTime;
-        earthRotationAngle += Math.PI * deltaTime;
-        earthRevolutionAngle += Math.PI / 6 * deltaTime;
+        rotationAngle += Math.PI * deltaTime;               // 180 degree/sec
+        sunRotationAngle += Math.PI / 4 * deltaTime;        // 45 degree/sec
+        earthRevolutionAngle += Math.PI / 6 * deltaTime;    // 30 degree/sec
         
         // applyTransform(currentTransformType);
     }
@@ -223,11 +219,11 @@ function setEarthTransform() {
     const R = mat4.create(); 
     const T = mat4.create();
 
-    mat4.rotate(R, R, earthRotationAngle, [0, 0, 1]);   // 자전 반영 (180 d/s)
+    mat4.rotate(R, R, rotationAngle, [0, 0, 1]);   // 자전 반영 (180 d/s)
     mat4.scale(S, S, [0.1, 0.1, 1]);                    // 크기 반영 (0.1)
     mat4.translate(T, T, [tx, ty, 0]);
 
-// Composite transform (RST with modified translation)
+    // Composite transform (RST with modified translation)
     mat4.multiply(earthTransform, R, earthTransform);
     mat4.multiply(earthTransform, S, earthTransform);
     mat4.multiply(earthTransform, T, earthTransform);
