@@ -17,7 +17,6 @@ let moonTransform;
 let sunRotationAngle = 0;
 let earthRevolutionAngle = 0;
 
-
 document.addEventListener('DOMContentLoaded', () => {
     if (isInitialized) {
         console.log("Already initialized");
@@ -145,15 +144,11 @@ function render() {
     shader.setMat4("u_model", finalTransform);
     gl.bindVertexArray(vao);
 
-    // TODO: delete after test
-    moonTransform = mat4.create();
-
-    mat4.translate(moonTransform, moonTransform, [0.5, 0.0, 0]);
-    mat4.scale(moonTransform, moonTransform, [0.2, 0.2, 0]);
 
     // set sun transform
     setSunTransform();
     setEarthTransform();
+    setMoonTransform();
 
     // draw Sun
     shader.setMat4("u_model", sunTransform);
@@ -227,5 +222,20 @@ function setEarthTransform() {
     mat4.multiply(earthTransform, R, earthTransform);
     mat4.multiply(earthTransform, S, earthTransform);
     mat4.multiply(earthTransform, T, earthTransform);
+
+}
+
+function setMoonTransform(){
+    moonTransform = mat4.create();
+
+    mat4.rotate(moonTransform, moonTransform, earthRevolutionAngle, [0, 0, 1]); //지구와 같은 속도로 태양 공전
+    mat4.translate(moonTransform, moonTransform, [0.7, 0.0, 0]); // 지구 중심으로 이동 == 지구의 공전반경
+
+    //지구를 공전
+    mat4.rotate(moonTransform, moonTransform, 2*rotationAngle, [0, 0, 1]); // 지구 공전 반영
+    mat4.translate(moonTransform, moonTransform, [0.2, 0.0, 0]); //지구 공전 반경만큼 이동
+
+    mat4.rotate(moonTransform, moonTransform, rotationAngle, [0, 0, 1]); // 자구 자전 속도와 같게 한다.
+    mat4.scale(moonTransform, moonTransform, [0.05, 0.05, 1]); // 크기 반영 (0.05)
 
 }
