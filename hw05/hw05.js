@@ -1,7 +1,6 @@
 import { resizeAspectRatio, setupText, updateText, Axes } from '../util/util.js';
 import { Shader, readShaderFile } from '../util/shader.js';
 import { Pyramid } from './squarePyramid.js';
-// import { Cube } from '../util/cube.js';
 
 const canvas = document.getElementById('glCanvas');
 const gl = canvas.getContext('webgl2');
@@ -13,10 +12,9 @@ let isInitialized = false;
 
 let viewMatrix = mat4.create();
 let projMatrix = mat4.create();
-let modelMatrix = mat4.create(); 
+let modelMatrix = mat4.create();
 const cameraCircleRadius = 3.0;
-const cameraCircleHeight = 2.0;
-const cameraCircleSpeed = 90.0; 
+const cameraCircleSpeed = 90.0;
 // const cube = new Cube(gl);
 const pyramid = new Pyramid(gl);
 const axes = new Axes(gl, 1.8);
@@ -49,7 +47,7 @@ function initWebGL() {
     resizeAspectRatio(gl, canvas);
     gl.viewport(0, 0, canvas.width, canvas.height);
     gl.clearColor(0.7, 0.8, 0.9, 1.0);
-    
+
     return true;
 }
 
@@ -74,10 +72,10 @@ function render() {
 
     // Viewing transformation matrix
     let camX = cameraCircleRadius * Math.sin(glMatrix.toRadian(cameraCircleSpeed * elapsedTime));
-    let camY = 5 * Math.sin(glMatrix.toRadian(cameraCircleSpeed/2 * elapsedTime)) + 5;
+    let camY = 5 * Math.sin(glMatrix.toRadian(cameraCircleSpeed / 2 * elapsedTime)) + 5;
     let camZ = cameraCircleRadius * Math.cos(glMatrix.toRadian(cameraCircleSpeed * elapsedTime));
-    
-    mat4.lookAt(viewMatrix, 
+
+    mat4.lookAt(viewMatrix,
         vec3.fromValues(camX, camY, camZ), // camera position
         vec3.fromValues(0, 0, 0), // look at origin
         vec3.fromValues(0, 1, 0)); // up vector
@@ -100,7 +98,7 @@ async function main() {
         if (!initWebGL()) {
             throw new Error('WebGL initialization failed');
         }
-        
+
         shader = await initShader();
 
         // Projection transformation matrix
