@@ -23,10 +23,10 @@ export class Cone {
 
         // 정점/법선/색상/텍스처좌표/인덱스 데이터를 담을 임시 배열
         const positions = [];
-        const normals   = [];
-        const colors    = [];
+        const normals = [];
+        const colors = [];
         const texCoords = [];
-        const indices   = [];
+        const indices = [];
 
         // 옵션에서 color가 있으면 사용, 없으면 기본값 사용
         const defaultColor = [0.8, 0.8, 0.8, 1.0];
@@ -60,9 +60,9 @@ export class Cone {
             // 각 face의 4개 정점 (CCW)
             positions.push(
                 // top0
-                x0_top,  halfH, z0_top,
+                x0_top, halfH, z0_top,
                 // top1
-                x1_top,  halfH, z1_top,
+                x1_top, halfH, z1_top,
                 // bot1
                 x1_bot, -halfH, z1_bot,
                 // bot0
@@ -72,13 +72,16 @@ export class Cone {
             // flat shading: 한 face(사각형)마다 동일한 법선.
             // face의 중앙 각도(midAngle) 기준으로 바깥쪽을 가리키는 (cos, 0, sin)
             const midAngle = angle0 + angleStep * 0.5;
+            // 원뿔 옆면 normal 계산
+            const slope = radius / (2 * halfH);
             const nx = Math.cos(midAngle);
-            const ny = 0.0;
+            const ny = slope;
             const nz = Math.sin(midAngle);
+            const nLen = Math.sqrt(nx * nx + ny * ny + nz * nz);
 
             // 이 사각형의 4개 정점에 동일한 법선 지정
             for (let k = 0; k < 4; k++) {
-                normals.push(nx, ny, nz);
+                normals.push(nx / nLen, ny / nLen, nz / nLen);
             }
 
             // 색상도 마찬가지로 4정점 동일
@@ -117,10 +120,10 @@ export class Cone {
 
         // Float32Array/Uint16Array에 담기
         this.vertices = new Float32Array(positions);
-        this.normals  = new Float32Array(normals);
-        this.colors   = new Float32Array(colors);
-        this.texCoords= new Float32Array(texCoords);
-        this.indices  = new Uint16Array(indices);
+        this.normals = new Float32Array(normals);
+        this.colors = new Float32Array(colors);
+        this.texCoords = new Float32Array(texCoords);
+        this.indices = new Uint16Array(indices);
 
         // backup normals (for flat/smooth shading)
         this.faceNormals = new Float32Array(this.normals);
@@ -154,6 +157,7 @@ export class Cone {
                 this.vertexNormals[i * 3 + 2] = z / len;
             } else {
                 // 혹시 모를 예외 상황(정말로 x=z=0이라면)
+                // 원뿔 만들 때, x=z=0으로 해 둬서 이 코드가 작동
                 this.vertexNormals[i * 3 + 0] = 0;
                 this.vertexNormals[i * 3 + 1] = 1; // 그냥 y축 위로
                 this.vertexNormals[i * 3 + 2] = 0;
