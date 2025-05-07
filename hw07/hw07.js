@@ -18,7 +18,7 @@ let projMatrix = mat4.create();
 let modelMatrix = mat4.create();
 let lampModelMatrix = mat4.create();
 let arcBallMode = 'CAMERA';     // 'CAMERA' or 'MODEL'
-let shadingMode_FS = 'SMOOTH';  // 'FLAT' or 'SMOOTH'
+let shadingMode_FS = 'FLAT';  // 'FLAT' or 'SMOOTH'
 let shadingMode_GF = 'PHONG';   // 'PHONG' or 'GOURAUD'
 
 const cone = new Cone(gl, 32);
