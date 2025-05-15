@@ -24,7 +24,7 @@ const orthoCamera = new THREE.OrthographicCamera(
     0.1,
     1000
 );
-orthoCamera.position.copy(camera.position);
+orthoCamera.position.set(0, 0, 100);
 orthoCamera.lookAt(0, 0, 0);
 
 const controls = new OrbitControls(camera, renderer.domElement);
@@ -33,24 +33,44 @@ controls.update();
 const stats = new Stats();
 document.body.appendChild(stats.dom);
 
-const light = new THREE.AmbientLight(0xffffff, 2);
-light.position.set(0, 0, 0);
-scene.add(light);
+const ambient = new THREE.AmbientLight(0xffffff, 0.6);
+scene.add(ambient);
 
-const loader = new THREE.TextureLoader();
+const pointLight = new THREE.PointLight(0xffffff, 5);
+pointLight.position.set(0, 0, 0);
+scene.add(pointLight);
+
 const gui = new GUI();
+const textureLoader = new THREE.TextureLoader();
+
+const cameraFolder = gui.addFolder('Camera');
+cameraFolder.open();
+
+const cameraOptions = {
+    toggleCamera: () => {
+        isPerspective = !isPerspective;
+        if (!isPerspective) {
+            orthoCamera.position.set(0, 0, 100);
+            orthoCamera.lookAt(0, 0, 0);
+        }
+        controls.object = isPerspective ? camera : orthoCamera;
+        controls.update();
+        cameraOptions.current = isPerspective ? 'Perspective' : 'Orthographic';
+    },
+    current: 'Perspective'
+};
+cameraFolder.add(cameraOptions, 'toggleCamera').name('Switch Camera Type');
+cameraFolder.add(cameraOptions, 'current').name('Current Camera').listen();
 
 const planetData = [
-    { name: 'Sun', radius: 10, distance: 0, color: '#ffff00' }, // 노란색 태양
-    { name: 'Mercury', radius: 1.5, distance: 20, texture: 'textures/Mercury.jpg', rotationSpeed: 0.02, orbitSpeed: 0.02 },
-    { name: 'Venus', radius: 3, distance: 35, texture: 'textures/Venus.jpg', rotationSpeed: 0.015, orbitSpeed: 0.015 },
-    { name: 'Earth', radius: 3.5, distance: 50, texture: 'textures/Earth.jpg', rotationSpeed: 0.01, orbitSpeed: 0.01 },
-    { name: 'Mars', radius: 2.5, distance: 65, texture: 'textures/Mars.jpg', rotationSpeed: 0.008, orbitSpeed: 0.008 },
+    { name: 'Sun', radius: 10, distance: 0, color: '#ffff00'},
+    { name: 'Mercury', radius: 1.5, distance: 20, color: '#a6a6a6', texture: 'textures/mercury.jpg', rotationSpeed: 0.02, orbitSpeed: 0.02 },
+    { name: 'Venus', radius: 3, distance: 35, color: '#e39e1c', texture: 'textures/venus.jpg', rotationSpeed: 0.015, orbitSpeed: 0.015 },
+    { name: 'Earth', radius: 3.5, distance: 50, color: '#3498db', texture: 'textures/earth.jpg', rotationSpeed: 0.01, orbitSpeed: 0.01 },
+    { name: 'Mars', radius: 2.5, distance: 65, color: '#c0392b', texture: 'textures/mars.jpg', rotationSpeed: 0.008, orbitSpeed: 0.008 },
 ];
 
 const planets = [];
-
-const textureLoader = new THREE.TextureLoader(); 
 
 planetData.forEach(data => {
     let material;
@@ -66,7 +86,6 @@ planetData.forEach(data => {
         });
     }
 
-    // 아래 나머지는 동일
     const geometry = new THREE.SphereGeometry(data.radius, 32, 32);
     const mesh = new THREE.Mesh(geometry, material);
     const pivot = new THREE.Object3D();
@@ -79,6 +98,7 @@ planetData.forEach(data => {
 
     if (data.name !== 'Sun') {
         const folder = gui.addFolder(data.name);
+        folder.open();
         folder.add(data, 'rotationSpeed', 0, 0.05).name('Rotation Speed');
         folder.add(data, 'orbitSpeed', 0, 0.05).name('Orbit Speed');
     }
@@ -86,14 +106,20 @@ planetData.forEach(data => {
     planets.push(data);
 });
 
+window.addEventListener('resize', () => {
+    const aspect = window.innerWidth / window.innerHeight;
 
-const cameraFolder = gui.addFolder('Camera');
-cameraFolder.add({ toggleCamera: () => {
-    isPerspective = !isPerspective;
-    controls.object = isPerspective ? camera : orthoCamera;
-    controls.update();
-}}, 'toggleCamera').name('Toggle Perspective/Ortho');
+    camera.aspect = aspect;
+    camera.updateProjectionMatrix();
 
+    orthoCamera.left = window.innerWidth / -orthoSize;
+    orthoCamera.right = window.innerWidth / orthoSize;
+    orthoCamera.top = window.innerHeight / orthoSize;
+    orthoCamera.bottom = window.innerHeight / -orthoSize;
+    orthoCamera.updateProjectionMatrix();
+
+    renderer.setSize(window.innerWidth, window.innerHeight);
+});
 
 function animate() {
     requestAnimationFrame(animate);
