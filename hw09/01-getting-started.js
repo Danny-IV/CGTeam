@@ -4,6 +4,8 @@ import Stats from 'three/addons/libs/stats.module.js';
 import { GUI } from 'three/addons/libs/lil-gui.module.min.js';
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
@@ -33,12 +35,19 @@ controls.update();
 const stats = new Stats();
 document.body.appendChild(stats.dom);
 
-const ambient = new THREE.AmbientLight(0xffffff, 0.6);
+const ambient = new THREE.AmbientLight(0xffffff, 0.3);
 scene.add(ambient);
 
 const pointLight = new THREE.PointLight(0xffffff, 5);
 pointLight.position.set(0, 0, 0);
+pointLight.castShadow = true;
+pointLight.shadow.mapSize.width = 2048;
+pointLight.shadow.mapSize.height = 2048;
+pointLight.shadow.bias = -0.0005;
 scene.add(pointLight);
+
+const lightHelper = new THREE.PointLightHelper(pointLight, 2);
+scene.add(lightHelper);
 
 const gui = new GUI();
 const textureLoader = new THREE.TextureLoader();
@@ -62,6 +71,15 @@ const cameraOptions = {
 cameraFolder.add(cameraOptions, 'toggleCamera').name('Switch Camera Type');
 cameraFolder.add(cameraOptions, 'current').name('Current Camera').listen();
 
+const ground = new THREE.Mesh(
+    new THREE.PlaneGeometry(500, 500),
+    new THREE.ShadowMaterial({ opacity: 0.3 })
+);
+ground.rotation.x = -Math.PI / 2;
+ground.position.y = -15;
+ground.receiveShadow = true;
+scene.add(ground);
+
 const planetData = [
     { name: 'Sun', radius: 10, distance: 0, color: '#ffff00'},
     { name: 'Mercury', radius: 1.5, distance: 20, color: '#a6a6a6', texture: 'textures/mercury.jpg', rotationSpeed: 0.02, orbitSpeed: 0.02 },
@@ -76,7 +94,7 @@ planetData.forEach(data => {
     let material;
 
     if (data.name === 'Sun') {
-        material = new THREE.MeshStandardMaterial({ color: data.color });
+        material = new THREE.MeshStandardMaterial({ color: data.color, emissive: 0xffff00, emissiveIntensity: 1.5 });
     } else {
         const texture = textureLoader.load(data.texture);
         material = new THREE.MeshStandardMaterial({
@@ -88,6 +106,9 @@ planetData.forEach(data => {
 
     const geometry = new THREE.SphereGeometry(data.radius, 32, 32);
     const mesh = new THREE.Mesh(geometry, material);
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+
     const pivot = new THREE.Object3D();
     pivot.add(mesh);
     scene.add(pivot);
