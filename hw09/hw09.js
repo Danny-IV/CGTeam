@@ -6,7 +6,6 @@ import { GUI } from 'three/addons/libs/lil-gui.module.min.js';
 // main scene
 const scene = new THREE.Scene();
 
-
 // Camera를 perspective와 orthographic 두 가지로 switching 해야 해서 const가 아닌 let으로 선언
 let camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
 camera.position.set(120, 60, 180);
@@ -51,7 +50,7 @@ const controls = new function () {
             scene.remove(camera);
             camera = null; // 기존의 camera 제거    
             // OrthographicCamera(left, right, top, bottom, near, far)
-            camera = new THREE.OrthographicCamera(window.innerWidth / -16, 
+            camera = new THREE.OrthographicCamera(window.innerWidth / -16,
                 window.innerWidth / 16, window.innerHeight / 16, window.innerHeight / -16, -200, 500);
             camera.position.x = 120;
             camera.position.y = 60;
@@ -64,7 +63,7 @@ const controls = new function () {
             this.perspective = "Orthographic";
         } else {
             scene.remove(camera);
-            camera = null; 
+            camera = null;
             camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
             camera.position.x = 120;
             camera.position.y = 60;
@@ -78,13 +77,13 @@ const controls = new function () {
         }
     };
 };
-folder1.add(controls, 'switchCamera');
-folder1.add(controls, 'perspective').listen();
+folder1.add(controls, 'switchCamera').name('Switch Camera Type');
+folder1.add(controls, 'perspective').listen().name('Current Camera');
 
 planetData.forEach(data => {
     const folder = gui.addFolder(data.name);
-    folder.add(data, 'rotationSpeed', 0, 0.1);
-    folder.add(data, 'orbitSpeed', 0, 0.1);
+    folder.add(data, 'rotationSpeed', 0, 0.1).name('Rotation Speed');
+    folder.add(data, 'orbitSpeed', 0, 0.1).name('Orbit Speed');
 });
 
 // listen to the resize events
@@ -144,7 +143,7 @@ function animate() {
     step += 1;
     // rotation
     planetData.forEach(data => {
-        data.planetObj.position.set(data.distance * Math.sin(step * data.orbitSpeed), 0, data.distance*Math.cos(step*data.orbitSpeed));
+        data.planetObj.position.set(data.distance * Math.sin(step * data.orbitSpeed), 0, data.distance * Math.cos(step * data.orbitSpeed));
         data.planetObj.rotation.y += data.rotationSpeed;
     });
 
