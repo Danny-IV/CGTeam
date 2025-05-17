@@ -127,8 +127,11 @@ function createPlanet(radius, textureFilePath) {
 
 planetData.forEach(data => {
     const planet = createPlanet(data.radius, `${data.name}.jpg`)
+    const rootObj = new THREE.Object3D(); // root object for orbit rotate 
     planet.position.set(data.distance, 0, 0);
-    scene.add(planet);
+    rootObj.add(planet);
+    scene.add(rootObj);
+    data.rootObj = rootObj;
     data.planetObj = planet;
 })
 
@@ -143,8 +146,10 @@ function animate() {
     step += 1;
     // rotation
     planetData.forEach(data => {
-        data.planetObj.position.set(data.distance * Math.sin(step * data.orbitSpeed), 0, data.distance * Math.cos(step * data.orbitSpeed));
-        data.planetObj.rotation.y += data.rotationSpeed;
+        data.rootObj.rotateY(data.orbitSpeed);
+        data.planetObj.rotateY(data.rotationSpeed);
+        // data.planetObj.position.set(data.distance * Math.sin(step * data.orbitSpeed), 0, data.distance * Math.cos(step * data.orbitSpeed));
+        // data.planetObj.rotation.y += data.rotationSpeed;
     });
 
     // 모든 transformation 적용 후, renderer에 렌더링을 한번 해 줘야 함
