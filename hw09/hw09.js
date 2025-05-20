@@ -3,7 +3,7 @@
 import * as THREE from 'three';
 import { GUI } from 'three/addons/libs/lil-gui.module.min.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { initStats, initRenderer, initCamera, initOrbitControls } from '../util.js';
+import { initStats, initRenderer, initCamera, initOrbitControls } from './util.js';
 
 const scene = new THREE.Scene();
 const textureLoader = new THREE.TextureLoader();
@@ -76,10 +76,10 @@ function createPlanet({ name, radius, distance, color, texturePath, rotationSpee
 }
 
 const planets = [
-  createPlanet({ name: 'Mercury', radius: 1.5, distance: 20, color: '#a6a6a6', texturePath: '../texture/Mercury.jpg', rotationSpeed: 0.02, orbitSpeed: 0.02 }),
-  createPlanet({ name: 'Venus', radius: 3, distance: 35, color: '#e39e1c', texturePath: '../texture/Venus.jpg', rotationSpeed: 0.015, orbitSpeed: 0.015 }),
-  createPlanet({ name: 'Earth', radius: 3.5, distance: 50, color: '#3498db', texturePath: '../texture/Earth.jpg', rotationSpeed: 0.01, orbitSpeed: 0.01 }),
-  createPlanet({ name: 'Mars', radius: 2.5, distance: 65, color: '#c0392b', texturePath: '../texture/Mars.jpg', rotationSpeed: 0.008, orbitSpeed: 0.008 })
+  createPlanet({ name: 'Mercury', radius: 1.5, distance: 20, color: '#a6a6a6', texturePath: './texture/Mercury.jpg', rotationSpeed: 0.02, orbitSpeed: 0.02 }),
+  createPlanet({ name: 'Venus', radius: 3, distance: 35, color: '#e39e1c', texturePath: './texture/Venus.jpg', rotationSpeed: 0.015, orbitSpeed: 0.015 }),
+  createPlanet({ name: 'Earth', radius: 3.5, distance: 50, color: '#3498db', texturePath: './texture/Earth.jpg', rotationSpeed: 0.01, orbitSpeed: 0.01 }),
+  createPlanet({ name: 'Mars', radius: 2.5, distance: 65, color: '#c0392b', texturePath: './texture/Mars.jpg', rotationSpeed: 0.008, orbitSpeed: 0.008 })
 ];
 
 const sunMaterial = new THREE.MeshBasicMaterial({ color: 0xffcc00 });
