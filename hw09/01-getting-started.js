@@ -20,7 +20,7 @@ const perspectiveCamera = new THREE.PerspectiveCamera(75, window.innerWidth / wi
 perspectiveCamera.position.set(0, 0, 100);
 perspectiveCamera.lookAt(0, 0, 0);
 
-const orthoSize = 100;
+const orthoSize = 12;
 const orthoCamera = new THREE.OrthographicCamera(
     window.innerWidth / -orthoSize,
     window.innerWidth / orthoSize,
@@ -51,8 +51,8 @@ pointLight.shadow.mapSize.set(1024, 1024);
 pointLight.shadow.bias = -0.0005;
 scene.add(pointLight);
 
-const lightHelper = new THREE.PointLightHelper(pointLight, 2);
-scene.add(lightHelper);
+// const lightHelper = new THREE.PointLightHelper(pointLight, 2);
+// scene.add(lightHelper);
 
 // GUI
 const gui = new GUI();
