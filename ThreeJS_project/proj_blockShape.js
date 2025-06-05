@@ -9,6 +9,9 @@ const camera = initCamera();
 const stats = initStats();
 const orbitControls = initOrbitControls(camera, renderer);
 
+let randomTargetBlock = null;
+let is_finished = false;
+
 // plane and cubes
 const cubeSize = 4;
 const cubeSpacing = 5;
@@ -259,8 +262,6 @@ function block_K(controls) {
   return false;
 }
 
-
-
 function setupControls() {
   const controls = {};
   const gui = new GUI();
@@ -283,27 +284,62 @@ function setupControls() {
         // console.log(controls);
 
         // *** controls 모양 확인 - 3x1 and 1x3, T모양 등 ***
-        let is_3x1_1x3 = block_3x1_1x3(controls);
+        // let is_3x1_1x3 = block_3x1_1x3(controls);
         // console.log(is_3x1_1x3);
         
-        let is_T = block_T(controls);
+        // let is_T = block_T(controls);
         // console.log(is_T);
 
-        let is_2x2 = block_2x2(controls);
+        // let is_2x2 = block_2x2(controls);
         // console.log(is_2x2);
 
-        let is_K = block_K(controls);
+        // let is_K = block_K(controls);
         // console.log(is_K);
 
-        console.log(`is_3x1_1x3 : ${is_3x1_1x3}\nis_T : ${is_T}\nis_2x2 : ${is_2x2}\nis_K : ${is_K}`);
+        // console.log(`is_3x1_1x3 : ${is_3x1_1x3}\nis_T : ${is_T}\nis_2x2 : ${is_2x2}\nis_K : ${is_K}`);
 
+        const result =
+          randomTargetBlock === '3x1_1x3' && block_3x1_1x3(controls) ||
+          randomTargetBlock === 'T' && block_T(controls) ||
+          randomTargetBlock === '2x2' && block_2x2(controls) ||
+          randomTargetBlock === 'K' && block_K(controls);
+
+        if (result) {
+          is_finished = true;
+          console.log(is_finished);
+        }
       });
     }
+  }
+
+  gui.add({ chooseBlock }, 'chooseBlock').name('블록 목표 지정');
+
+  function chooseBlock() {
+    // 1. 모든 블록 초기화 (체크 해제, visible=false)
+    is_finished = false;
+    console.log(is_finished);
+
+    for (let j = 0; j < gridSize; j++) {
+      for (let i = 0; i < gridSize; i++) {
+        cubes[j][i] = false;
+        controls[`${j}-${i}`] = false;
+        cubeArray[j][i].visible = false;
+      }
+    }
+
+    // 2. GUI에 반영 (리렌더링 트리거됨)
+    gui.controllersRecursive().forEach(controller => controller.updateDisplay());
+
+    // 3. 블록 목표 무작위 지정
+    const blockTypes = ['3x1_1x3', 'T', '2x2', 'K'];
+    randomTargetBlock = blockTypes[Math.floor(Math.random() * blockTypes.length)];
+    console.log(`목표 블록: ${randomTargetBlock}`);
   }
 
   return controls;
 }
 
 controls
+
 
 
