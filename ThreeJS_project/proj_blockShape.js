@@ -9,8 +9,8 @@ const camera = initCamera();
 const stats = initStats();
 const orbitControls = initOrbitControls(camera, renderer);
 
-let randomTargetBlock = null;
-let is_finished = false;
+let randomTargetBlock = null;     // '3x1_1x3', 'T', '2x2', 'K' 중 랜덤으로 지정된 거
+let is_finished = false;          // 모양 맞추면 true
 
 // plane and cubes
 const cubeSize = 4;
@@ -315,7 +315,7 @@ function setupControls() {
   gui.add({ chooseBlock }, 'chooseBlock').name('블록 목표 지정');
 
   function chooseBlock() {
-    // 1. 모든 블록 초기화 (체크 해제, visible=false)
+    // 모든 블록 선택 초기화
     is_finished = false;
     console.log(is_finished);
 
@@ -327,10 +327,10 @@ function setupControls() {
       }
     }
 
-    // 2. GUI에 반영 (리렌더링 트리거됨)
+    // GUI에 반영 
     gui.controllersRecursive().forEach(controller => controller.updateDisplay());
 
-    // 3. 블록 목표 무작위 지정
+    // 블록 목표 무작위 지정
     const blockTypes = ['3x1_1x3', 'T', '2x2', 'K'];
     randomTargetBlock = blockTypes[Math.floor(Math.random() * blockTypes.length)];
     console.log(`목표 블록: ${randomTargetBlock}`);
