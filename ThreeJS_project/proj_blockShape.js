@@ -334,8 +334,19 @@ function setupControls() {
     const blockTypes = ['3x1_1x3', 'T', '2x2', 'K'];
     randomTargetBlock = blockTypes[Math.floor(Math.random() * blockTypes.length)];
     console.log(`목표 블록: ${randomTargetBlock}`);
-  }
+    
+    // 이미지 설정
+    const imageMap = {
+      '3x1_1x3': 'block_3x1.png',
+      'T': 'block_T.png',
+      '2x2': 'block_2x2.png',
+      'K': 'block_K.png'
+    };
+    const imageFile = imageMap[randomTargetBlock] ?? 'block_None.png';
 
+    document.getElementById('block-image').src = `images/${imageFile}`;
+
+  }
   return controls;
 }
 
