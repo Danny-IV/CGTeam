@@ -156,7 +156,8 @@ function block_T(controls) {
         controls[`${j}-${i}`] &&
         controls[`${j - 1}-${i + 1}`] &&
         controls[`${j}-${i + 1}`] &&
-        controls[`${j + 1}-${i + 1}`]
+        controls[`${j + 1}-${i + 1}`] &&
+        controls[`${j}-${i - 1}`]
       ) return "right";
 
       // ㅏ
@@ -166,7 +167,8 @@ function block_T(controls) {
         controls[`${j}-${i}`] &&
         controls[`${j - 1}-${i - 1}`] &&
         controls[`${j}-${i - 1}`] &&
-        controls[`${j + 1}-${i - 1}`]
+        controls[`${j + 1}-${i - 1}`] &&
+        controls[`${j}-${i + 1}`]
       ) return "left";
     }
   }
