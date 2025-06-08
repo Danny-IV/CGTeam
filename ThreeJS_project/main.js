@@ -6,11 +6,17 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 let scene, renderer, camera;
 let stats;
 let physicsWorld;
-let sphereMesh, sphereBody;
 let boxMesh;
+const spheres = [];
 const cameraOffset = new THREE.Vector3(0, 2, -5);
 let targetPosition = new THREE.Vector3();
 let orbitControls;
+const cameraPosition = new THREE.Vector3(-15, 10, 0);
+// grid
+const gridSize = 5;
+const gridCells = [];
+const gridHelpers = [];
+
 
 main().catch(error => {
     console.error("Failed to initialize:", error);
@@ -23,39 +29,24 @@ async function main() {
     orbitControls = util.initOrbitControls(camera, renderer);
     orbitControls.target.set(0, 0, 0);
 
+    createSphere(scene, physicsWorld, 1, new THREE.Vector3(0, 5, 0));
     createSphere(scene, physicsWorld, 1, new THREE.Vector3(2, 5, 0));
+    createSphere(scene, physicsWorld, 1, new THREE.Vector3(0, 5, 2));
+    createSphere(scene, physicsWorld, 1, new THREE.Vector3(2, 5, 2));
 
-    createBox(scene)
+    // createBox(scene)
     // createGround(scene, physicsWorld);
     createGridHelper(scene);
+    const axesHelper = new THREE.AxesHelper(20); // 10 unit 길이의 축을 보여줌
+    scene.add(axesHelper);
 
     // set map
     const map = await loadGLTFModel(scene, "./models/map.glb");
     createCollider(map, physicsWorld);
 
+    initGrid();
+
     render();
-}
-
-/**
- * @param boxMesh {THREE.Mesh}
- * @param sphereMesh {THREE.Mesh}
- */
-function isSphereIntersectingBox(boxMesh, sphereMesh) {
-    // 1. Box3 생성 (AABB)
-    const box = new THREE.Box3().setFromObject(boxMesh);
-
-    // 2. Sphere의 월드 좌표 중심점 계산
-    const sphereWorldPosition = new THREE.Vector3();
-    sphereMesh.getWorldPosition(sphereWorldPosition);
-
-    // 3. Sphere의 실제 반지름 계산
-    const sphereRadius = sphereMesh.geometry.parameters.radius;
-
-    // 4. Sphere 객체 생성
-    const sphere = new THREE.Sphere(sphereWorldPosition, sphereRadius);
-
-    // 5. 교차 여부 반환
-    return box.intersectsSphere(sphere);
 }
 
 /**
@@ -112,13 +103,70 @@ function createCollider(model, world) {
 
 }
 
+function initGrid() {
+    const cellSize = 1;
+    const cellHeight = 1;
+    const cellGap = 2;
+    for (let i = 0; i < gridSize; i++) {
+        gridCells[i] = [];
+        gridHelpers[i] = [];
+        for (let j = 0; j < gridSize; j++) {
+            const x = (cellSize + cellGap) * (i - ((gridSize - 1) / 2));
+            const z = (cellSize + cellGap) * (j - ((gridSize - 1) / 2));
+            const box = new THREE.Box3();
+            box.setFromCenterAndSize(
+                new THREE.Vector3(x, 0, z),
+                new THREE.Vector3(cellSize, cellHeight, cellSize)
+            );
+            gridCells[i].push({ cell: box, indicator: false });
+
+            // Box3Helper 생성 (노란색)
+            const helper = new THREE.Box3Helper(box, 0xffff00);
+
+            // 씬에 추가
+            scene.add(helper);
+
+            gridHelpers[i].push(helper);
+        }
+    }
+}
+
+function updateGridHelper() {
+    for (let i = 0; i < gridSize; i++) {
+        for (let j = 0; j < gridSize; j++) {
+            if (gridCells[i][j].indicator) {
+                gridHelpers[i][j].material.color.set(0xff0000);
+            }
+            else {
+                gridHelpers[i][j].material.color.set(0xffff00);
+            }
+        }
+    }
+}
+
+function checkIntersection() {
+    // update checkSpere location
+    spheres.forEach(obj => {
+        obj.checkSphere.center.set(obj.mesh.position.x, obj.mesh.position.y, obj.mesh.position.z);
+    });
+
+    for (let i = 0; i < gridSize; i++) {
+        for (let j = 0; j < gridSize; j++) {
+            const box = gridCells[i][j].cell;
+            gridCells[i][j].indicator = spheres.map(sphere => sphere.checkSphere).some(element => {
+                return box.intersectsSphere(element);
+            })
+        }
+    }
+}
+
 function initThree() {
     scene = new THREE.Scene();
     scene.background = new THREE.Color(0xbfd1e5);
 
     stats = util.initStats();
     renderer = util.initRenderer();
-    camera = util.initCamera();
+    camera = util.initCamera(cameraPosition);
 
     scene.add(camera);
 
@@ -143,28 +191,27 @@ async function initPhysics() {
  * @param {THREE.Vector3} [position=new THREE.Vector3(0, 5, 0)] - 초기 위치
  */
 function createSphere(scene, world, radius = 1, position = new THREE.Vector3(0, 5, 0)) {
+    // three.js mesh
     const sphereGeometry = new THREE.SphereGeometry(radius);
     const sphereMaterial = new THREE.MeshPhongMaterial({ color: 0xff0000 });
-    sphereMesh = new THREE.Mesh(sphereGeometry, sphereMaterial);
+    const sphereMesh = new THREE.Mesh(sphereGeometry, sphereMaterial);
+    sphereMesh.position.set(position.x, position.y, position.z);
     scene.add(sphereMesh);
 
-    // 위치 매개변수 적용
+    // rapier body
     const sphereBodyDesc = RAPIER.RigidBodyDesc.dynamic()
         .setTranslation(position.x, position.y, position.z);
-    sphereBody = world.createRigidBody(sphereBodyDesc);
+    const sphereBody = world.createRigidBody(sphereBodyDesc);
 
     const sphereColliderDesc = RAPIER.ColliderDesc.ball(radius)
         .setRestitution(0.8)
         .setFriction(0.3);
     world.createCollider(sphereColliderDesc, sphereBody);
-}
 
-function createBox(scene, size = 2) {
-    boxMesh = new THREE.Mesh(
-        new THREE.BoxGeometry(size, size, size),
-        new THREE.MeshBasicMaterial()
-    );
-    scene.add(boxMesh);
+    // for collision check
+    const sphere = new THREE.Sphere(position, radius);
+
+    spheres.push({ mesh: sphereMesh, body: sphereBody, checkSphere: sphere });
 }
 
 function createGround(scene, world) {
@@ -205,9 +252,12 @@ function render() {
     physicsWorld.step();
 
     // 메시 위치 동기화
-    const position = sphereBody.translation();
-    sphereMesh.position.set(position.x, position.y, position.z);
-    sphereMesh.quaternion.copy(sphereBody.rotation());
+    spheres.forEach(obj => {
+        const pos = obj.body.translation();
+        const rot = obj.body.rotation();
+        obj.mesh.position.set(pos.x, pos.y, pos.z);
+        obj.mesh.quaternion.set(rot.x, rot.y, rot.z, rot.w);
+    });
 
     // 카메라 위치 보간
     // targetPosition.set(
@@ -219,7 +269,9 @@ function render() {
     // camera.lookAt(position.x, position.y, position.z);
 
     // collision check
-    console.log(isSphereIntersectingBox(boxMesh, sphereMesh));
+    checkIntersection();
+
+    updateGridHelper();
 
     renderer.render(scene, camera);
 }
