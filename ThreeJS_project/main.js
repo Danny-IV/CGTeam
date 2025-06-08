@@ -23,11 +23,15 @@ async function main() {
     orbitControls = util.initOrbitControls(camera, renderer);
     orbitControls.target.set(0, 0, 0);
 
-    createSphere(scene, physicsWorld);
+    createSphere(scene, physicsWorld, 1, new THREE.Vector3(2, 5, 0));
+
     createBox(scene)
-    createGround(scene, physicsWorld);
+    // createGround(scene, physicsWorld);
     createGridHelper(scene);
-    loadGLTFModel(scene, "./models/map.glb");
+
+    // set map
+    const map = await loadGLTFModel(scene, "./models/map.glb");
+    createCollider(map, physicsWorld);
 
     render();
 }
@@ -61,22 +65,51 @@ function isSphereIntersectingBox(boxMesh, sphereMesh) {
  * @param {Vector3} [position] - optional
  */
 function loadGLTFModel(scene, filepath, position) {
-    const loader = new GLTFLoader();
-    loader.load(
-        filepath,
-        (gltf) => {
-            const model = gltf.scene;
-            // position set
-            if (position) {
-                model.position.set(position);
+    return new Promise((resolve, reject) => {
+        const loader = new GLTFLoader();
+        loader.load(
+            filepath,
+            (gltf) => {
+                const model = gltf.scene;
+                if (position) model.position.copy(position);
+                scene.add(model);
+                resolve(model); // 로드 완료 시 모델 반환
+            },
+            undefined,
+            (error) => {
+                console.error('GLTF load fail:', error);
+                reject(error);
             }
-            scene.add(model);
-        },
-        undefined,
-        (error) => {
-            console.error('FBX load fail:', error);
+        );
+    });
+}
+
+function extractGeometryData(mesh) {
+    const geometry = mesh.geometry;
+    // 정점 데이터 (Float32Array)
+    const vertices = geometry.attributes.position.array;
+    // 인덱스 데이터 (Uint16Array 또는 Uint32Array)
+    const indices = geometry.index ? geometry.index.array : null;
+    return { vertices, indices };
+}
+
+function createCollider(model, world) {
+    model.traverse((child) => {
+        if (child.isMesh) {
+            const { vertices, indices } = extractGeometryData(child);
+
+            // rigidbody 생성
+            const rigidBodyDesc = RAPIER.RigidBodyDesc.fixed();
+            const rigidBody = physicsWorld.createRigidBody(rigidBodyDesc);
+
+            // Trimesh 예시
+            const colliderDesc = RAPIER.ColliderDesc.trimesh(vertices, indices);
+
+            // Rapier 월드에 콜라이더 추가
+            world.createCollider(colliderDesc, rigidBody);
         }
-    );
+    });
+
 }
 
 function initThree() {
@@ -103,16 +136,21 @@ async function initPhysics() {
     physicsWorld = new RAPIER.World({ x: 0.0, y: -9.81, z: 0.0 });
 }
 
-function createSphere(scene, world, radius = 1) {
-
+/**
+ * @param {THREE.Scene} scene - Three.js 장면 객체
+ * @param {RAPIER.World} world - Rapier 물리 월드
+ * @param {number} [radius=1] - 구체 반지름
+ * @param {THREE.Vector3} [position=new THREE.Vector3(0, 5, 0)] - 초기 위치
+ */
+function createSphere(scene, world, radius = 1, position = new THREE.Vector3(0, 5, 0)) {
     const sphereGeometry = new THREE.SphereGeometry(radius);
     const sphereMaterial = new THREE.MeshPhongMaterial({ color: 0xff0000 });
     sphereMesh = new THREE.Mesh(sphereGeometry, sphereMaterial);
     scene.add(sphereMesh);
 
-    // 4. 구체 물리 객체 생성
+    // 위치 매개변수 적용
     const sphereBodyDesc = RAPIER.RigidBodyDesc.dynamic()
-        .setTranslation(0, 5, 0);
+        .setTranslation(position.x, position.y, position.z);
     sphereBody = world.createRigidBody(sphereBodyDesc);
 
     const sphereColliderDesc = RAPIER.ColliderDesc.ball(radius)
