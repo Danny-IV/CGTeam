@@ -2,7 +2,13 @@ import * as THREE from 'three';
 import RAPIER from 'https://cdn.skypack.dev/@dimforge/rapier3d-compat';
 import * as util from './util.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import TWEEN from 'https://cdnjs.cloudflare.com/ajax/libs/tween.js/18.6.4/tween.esm.js';
+import * as check from './checkBlock.js';
+import * as card from './cardAnimation.js';
 
+// gridCells -> controls : 
+// 랜덤으로 선택 된 카드 : card.randomTargetBlock
+// let target = '2x2';
 let scene, renderer, camera;
 let stats;
 let physicsWorld;
@@ -45,6 +51,7 @@ async function main() {
     createCollider(map, physicsWorld);
 
     initGrid();
+    card.setTargetGUI();
 
     render();
 }
@@ -129,6 +136,8 @@ function initGrid() {
             gridHelpers[i].push(helper);
         }
     }
+    // console.log(gridCells);
+    // console.log(check.convertGridToControls(gridCells));
 }
 
 function updateGridHelper() {
@@ -248,7 +257,7 @@ function render() {
     stats.update();
     orbitControls.update();
     requestAnimationFrame(render);
-
+    TWEEN.update();
     physicsWorld.step();
 
     // 메시 위치 동기화
@@ -273,6 +282,10 @@ function render() {
 
     updateGridHelper();
 
+    let controls = check.convertGridToControls(gridCells);
+    let isTargetFin = check.checkTarget(controls, card.randomTargetBlock);
+    console.log(isTargetFin);
+
+
     renderer.render(scene, camera);
 }
-

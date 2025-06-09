@@ -1,3 +1,6 @@
+
+//main에 사용하지 않는 파일
+
 import * as THREE from 'three';  
 import { GUI } from 'three/addons/libs/lil-gui.module.min.js';
 import { initStats, initRenderer, initCamera, initOrbitControls } from './util.js';
@@ -12,8 +15,11 @@ const orbitControls = initOrbitControls(camera, renderer);
 
 let randomTargetBlock = null;     // '3x1_1x3', 'T', '2x2', 'K' 중 랜덤으로 지정된 거
 let is_finished = false;          // 모양 맞추면 true
+
+//카드 용 변수
 let isFrontVisible = false; // 처음에는 뒷면
 let cardStart = false; 
+let currentRotationY = 0;
 
 // plane and cubes
 const cubeSize = 4;
@@ -74,7 +80,7 @@ function render() {
 
 let cubes = [];
 const controls = setupControls();
-// console.log(controls);
+console.log(controls);
 
 
 
@@ -263,9 +269,6 @@ function block_K(controls) {
 
   return false;
 }
-
-
-let currentRotationY = 0;
 
 function flipBlockImage(nextFrontImagePath, onComplete = () => {}) {
   const front = document.getElementById('card-front');

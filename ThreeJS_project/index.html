@@ -3,12 +3,7 @@
 
 <head>
     <meta charset="utf-8">
-    <style>
-        body {
-            margin: 0;
-            overflow: hidden;
-        }
-    </style>
+    <link rel="stylesheet" href="card.css" />
     <script type="importmap">
     {
         "imports": {
@@ -22,6 +17,14 @@
 </head>
 
 <body>
+  <!-- 카드 앞면/뒷면을 위한 컨테이너 -->
+  <div id="card-container">
+  <div id="card-inner">
+    <img id="card-front" class="card-face front" src="images/block_None.png" />
+    <img id="card-back" class="card-face back" src="images/block_None.png" />
+  </div>
+</div>
+
 </body>
 
 </html>
