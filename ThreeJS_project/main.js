@@ -58,6 +58,7 @@ async function main() {
 
     initGrid();
     card.setTargetGUI();
+    // card.setTarget();
 
     render();
 }
