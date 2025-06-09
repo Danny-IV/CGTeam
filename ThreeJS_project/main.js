@@ -18,6 +18,8 @@ const cameraOffset = new THREE.Vector3(0, 2, -5);
 let targetPosition = new THREE.Vector3();
 let orbitControls;
 const cameraPosition = new THREE.Vector3(-15, 10, 0);
+let isTargetFin = false;
+
 // grid
 const gridSize = 5;
 const gridCells = [];
@@ -39,6 +41,10 @@ async function main() {
     createSphere(scene, physicsWorld, 1, new THREE.Vector3(2, 5, 0));
     createSphere(scene, physicsWorld, 1, new THREE.Vector3(0, 5, 2));
     createSphere(scene, physicsWorld, 1, new THREE.Vector3(2, 5, 2));
+
+    // createSphere(scene, physicsWorld, 1, new THREE.Vector3(6, 5, 2));
+    // createSphere(scene, physicsWorld, 1, new THREE.Vector3(2, 5, 4));
+    // createSphere(scene, physicsWorld, 1, new THREE.Vector3(2, 5, -2));
 
     // createBox(scene)
     // createGround(scene, physicsWorld);
@@ -283,7 +289,7 @@ function render() {
     updateGridHelper();
 
     let controls = check.convertGridToControls(gridCells);
-    let isTargetFin = check.checkTarget(controls, card.randomTargetBlock);
+    isTargetFin = check.checkTarget(controls, card.randomTargetBlock);
     console.log(isTargetFin);
 
 
