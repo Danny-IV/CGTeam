@@ -5,6 +5,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import TWEEN from 'https://cdnjs.cloudflare.com/ajax/libs/tween.js/18.6.4/tween.esm.js';
 import * as check from './checkBlock.js';
 import * as card from './cardAnimation.js';
+import * as ball from './shootBall.js';
 
 // gridCells -> controls : 
 // 랜덤으로 선택 된 카드 : card.randomTargetBlock
@@ -19,6 +20,17 @@ let targetPosition = new THREE.Vector3();
 let orbitControls;
 const cameraPosition = new THREE.Vector3(-15, 10, 0);
 let isTargetFin = false;
+
+let ballcounter = 1;
+let spawnTimeout = null;
+let lastShotBall = null; // 최근에 날아간 공
+
+// 이벤트
+window.addEventListener('pointerdown', (event) => ball.onPowerStart(event, spheres, camera, physicsWorld));
+window.addEventListener('pointerup', (event) =>
+    ball.onPowerRelease(event, spheres, camera, physicsWorld, (obj) => {lastShotBall = obj;})
+);
+
 
 // grid
 const gridSize = 5;
@@ -36,6 +48,9 @@ async function main() {
     util.initDefaultDirectionalLighting(scene);
     orbitControls = util.initOrbitControls(camera, renderer);
     orbitControls.target.set(0, 0, 0);
+
+
+    ball.createFixedSphere(scene, physicsWorld, spheres, 1, new THREE.Vector3(0, 5, -5));
 
     createSphere(scene, physicsWorld, 1, new THREE.Vector3(0, 5, 0));
     createSphere(scene, physicsWorld, 1, new THREE.Vector3(2, 5, 0));
@@ -230,6 +245,7 @@ function createSphere(scene, world, radius = 1, position = new THREE.Vector3(0, 
     spheres.push({ mesh: sphereMesh, body: sphereBody, checkSphere: sphere });
 }
 
+
 function createGround(scene, world) {
     // Ground Mesh 생성
     const groundGeometry = new THREE.PlaneGeometry(100, 100);
@@ -292,6 +308,19 @@ function render() {
     let controls = check.convertGridToControls(gridCells);
     isTargetFin = check.checkTarget(controls, card.randomTargetBlock);
     console.log(isTargetFin);
+
+    // 친 공이 멈추면 새로운 공을 생성
+    if (
+        lastShotBall &&                 // 최근에 친 공이 있고
+        !lastShotBall.isFixed &&        // 그 공이 날아간 상태(isFixed=false)
+        ball.isBallStopped(lastShotBall) // 그리고 충분히 멈췄으면
+    ) {
+        ball.createFixedSphere(scene, physicsWorld, spheres, 1, new THREE.Vector3(0, 5, -5));
+        ballcounter += 1;
+        lastShotBall = null; // 새 공 생성 후 더 이상 중복 생성을 막기 위해 null
+    }
+
+    
 
 
     renderer.render(scene, camera);
