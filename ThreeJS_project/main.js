@@ -72,8 +72,8 @@ async function main() {
     createCollider(map, physicsWorld);
 
     initGrid();
-    card.setTargetGUI();
-    // card.setTarget();
+    card.setTargetGUI();   // GUI 대신 setTarget 호출하면 GUI없이 카드가 선택됨
+    // card.setTarget();  
 
     render();
 }
