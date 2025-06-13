@@ -10,6 +10,7 @@ import * as ball from './shootBall.js';
 // gridCells -> controls : 
 // 랜덤으로 선택 된 카드 : card.randomTargetBlock
 // let target = '2x2';
+let currentScene;
 let scene, renderer, camera;
 let stats;
 let physicsWorld;
@@ -28,7 +29,7 @@ let lastShotBall = null; // 최근에 날아간 공
 // 이벤트
 window.addEventListener('pointerdown', (event) => ball.onPowerStart(event, spheres, camera, physicsWorld));
 window.addEventListener('pointerup', (event) =>
-    ball.onPowerRelease(event, spheres, camera, physicsWorld, (obj) => {lastShotBall = obj;})
+    ball.onPowerRelease(event, spheres, camera, physicsWorld, (obj) => { lastShotBall = obj; })
 );
 
 
@@ -45,10 +46,8 @@ main().catch(error => {
 async function main() {
     initThree();
     await initPhysics();
-    util.initDefaultDirectionalLighting(scene);
     orbitControls = util.initOrbitControls(camera, renderer);
     orbitControls.target.set(0, 0, 0);
-
 
     ball.createFixedSphere(scene, physicsWorld, spheres, 1, new THREE.Vector3(0, 5, -5));
 
@@ -132,6 +131,11 @@ function extractGeometryData(mesh) {
     return { vertices, indices };
 }
 
+/**
+ * Create a collider for the given model and add it to the given physics world.
+ * @param {THREE.Object3D} model
+ * @param {RAPIER.World} world
+ */
 function createCollider(model, world) {
     model.traverse((child) => {
         if (child.isMesh && child.geometry) {
@@ -224,11 +228,13 @@ function initThree() {
     bgTexture.encoding = THREE.sRGBEncoding;
     scene.background = bgTexture
 
-    stats = util.initStats();
+    // light
+    util.initDefaultDirectionalLighting(scene);
+
     renderer = util.initRenderer();
     camera = util.initCamera(cameraPosition);
-
-    scene.add(camera);
+    
+    stats = util.initStats();
 
     window.addEventListener("resize", onWindowResize, false);
 }
@@ -309,6 +315,15 @@ function createGridHelper(scene) {
     scene.add(gridHelper);
 }
 
+
+/**
+ * Scene을 전환
+ * @param {THREE.Scene} targetScene 전환할 Scene
+ */
+function switchScene(targetScene) {
+    currentScene = targetScene;
+}
+
 function render() {
     stats.update();
     orbitControls.update();
@@ -337,6 +352,7 @@ function render() {
     checkIntersection();
 
     updateGridHelper();
+    // console.log(gridCells.map(row => row.map(item => item.indicator)));
 
     let controls = check.convertGridToControls(gridCells);
     isTargetFin = check.checkTarget(controls, card.randomTargetBlock);
@@ -353,8 +369,6 @@ function render() {
         lastShotBall = null; // 새 공 생성 후 더 이상 중복 생성을 막기 위해 null
     }
 
-    
-
-
+    // render current Scene
     renderer.render(scene, camera);
 }
