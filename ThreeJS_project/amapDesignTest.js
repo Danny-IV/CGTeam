@@ -50,7 +50,7 @@ async function init() {
 
   const sphereDesc = RAPIER.RigidBodyDesc.dynamic()
   .setTranslation(0, 5, 30)        // z=30에서 시작
-  .setLinvel(0, 0, -30)  // z- 방향으로 속도 설정
+  .setLinvel(20, 10, -30)  // z- 방향으로 속도 설정
   .setCcdEnabled(true);            // 터널링 방지
 
   sphereBody = physicsWorld.createRigidBody(sphereDesc);
@@ -63,7 +63,7 @@ async function init() {
     const wall = gltf.scene;
     wall.scale.set(1, 1, 1);
     scene.add(wall);
-    createBoxColliderFromModel(wall, physicsWorld); // 💡 이걸로 교체
+    createCollider(wall, physicsWorld);
     });
 
 
@@ -71,53 +71,32 @@ async function init() {
 }
 
 // ➤ Trimesh 기반 collider 생성 함수
+
 function createCollider(model, world) {
-  model.traverse((child) => {
-    if (child.isMesh) {
-      const geometry = child.geometry;
-      if (!geometry || !geometry.attributes.position) return;
+    model.traverse((child) => {
+        if (child.isMesh && child.geometry) {
+            child.updateMatrixWorld(true); // transform 반영
 
-      const vertices = geometry.attributes.position.array;
-      const indices = geometry.index ? geometry.index.array : null;
+            const geometry = child.geometry.clone();
+            geometry.applyMatrix4(child.matrixWorld); // world 변환 반영
 
-      const rigidBodyDesc = RAPIER.RigidBodyDesc.fixed();
-      const rigidBody = world.createRigidBody(rigidBodyDesc);
+            const vertices = geometry.attributes.position.array;
+            const indices = geometry.index ? geometry.index.array : null;
 
-      let colliderDesc = null;
+            if (!vertices || !indices) {
+                console.warn(`Skipping ${child.name} – invalid geometry for trimesh`);
+                return;
+            }
 
-      try {
-        colliderDesc = RAPIER.ColliderDesc.convexHull(vertices);
-        if (!colliderDesc) throw new Error("convexHull 실패");
-      } catch (e) {
-        console.warn("⚠️ convexHull 실패, → trimesh로 대체");
-        if (indices) {
-          colliderDesc = RAPIER.ColliderDesc.trimesh(vertices, indices);
-        } else {
-          console.warn("❌ indices 없음 → collider 생성 실패");
-          return;
+            console.log(`Creating trimesh collider for ${child.name}`);
+
+            const rigidBodyDesc = RAPIER.RigidBodyDesc.fixed();
+            const rigidBody = world.createRigidBody(rigidBodyDesc);
+
+            const colliderDesc = RAPIER.ColliderDesc.trimesh(vertices, indices);
+            world.createCollider(colliderDesc, rigidBody);
         }
-      }
-
-      world.createCollider(colliderDesc, rigidBody);
-    }
-  });
-}
-
-function createBoxColliderFromModel(model, world) {
-  const box = new THREE.Box3().setFromObject(model);
-  const size = new THREE.Vector3();
-  const center = new THREE.Vector3();
-  box.getSize(size);
-  box.getCenter(center);
-
-  console.log("Box size:", size, "center:", center);
-
-  const body = world.createRigidBody(
-    RAPIER.RigidBodyDesc.fixed().setTranslation(center.x, center.y, center.z)
-  );
-
-  const collider = RAPIER.ColliderDesc.cuboid(size.x / 2, size.y / 2, size.z / 2);
-  world.createCollider(collider, body);
+    });
 }
 
 

@@ -70,9 +70,25 @@ async function main() {
     // set map
     const map = await loadGLTFModel(scene, "./models/map.glb");
     createCollider(map, physicsWorld);
+    
 
-    const wall = await loadGLTFModel(scene, "./models/mapWall.glb", new THREE.Vector3(0, 0, 0));
+    const wall = await loadGLTFModel(scene, "./models/mapWall_H.glb", new THREE.Vector3(0, 0, 0));
+    createCollider(wall, physicsWorld);
 
+
+    // wall, map 색상 설정
+    map.traverse((child) => {
+    if (child.isMesh && child.material) {
+        child.material.color.set(0xffffff);
+        child.material.emissive = new THREE.Color(0xffffff);        // 발광 색상
+        child.material.emissiveIntensity = 0.5;
+    }    });
+
+    wall.traverse((child) => {
+    if (child.isMesh && child.material) {
+        child.material.color.set(0x444444);
+    }    });
+    
 
     initGrid();
     card.setTargetGUI();   // GUI 대신 setTarget 호출하면 GUI없이 카드가 선택됨
@@ -118,21 +134,26 @@ function extractGeometryData(mesh) {
 
 function createCollider(model, world) {
     model.traverse((child) => {
-        if (child.isMesh) {
-            const { vertices, indices } = extractGeometryData(child);
+        if (child.isMesh && child.geometry) {
+            child.updateMatrixWorld(true);
 
-            // rigidbody 생성
+            const geometry = child.geometry.clone();
+            geometry.applyMatrix4(child.matrixWorld);
+
+            const vertices = geometry.attributes.position.array;
+            const indices = geometry.index ? geometry.index.array : null;
+
+            if (!vertices || !indices) {
+                console.warn(`Skipping ${child.name} – invalid geometry for trimesh`);
+                return;
+            }
             const rigidBodyDesc = RAPIER.RigidBodyDesc.fixed();
-            const rigidBody = physicsWorld.createRigidBody(rigidBodyDesc);
+            const rigidBody = world.createRigidBody(rigidBodyDesc);
 
-            // Trimesh 예시
             const colliderDesc = RAPIER.ColliderDesc.trimesh(vertices, indices);
-
-            // Rapier 월드에 콜라이더 추가
             world.createCollider(colliderDesc, rigidBody);
         }
     });
-
 }
 
 function initGrid() {
@@ -196,7 +217,12 @@ function checkIntersection() {
 
 function initThree() {
     scene = new THREE.Scene();
-    scene.background = new THREE.Color(0xbfd1e5);
+    scene.background = new THREE.Color(0x0);
+
+    // const textureLoader = new THREE.TextureLoader();
+    // const bgTexture = textureLoader.load('./images/space.png');
+    // bgTexture.encoding = THREE.sRGBEncoding;
+    // scene.background = bgTexture
 
     stats = util.initStats();
     renderer = util.initRenderer();
@@ -227,7 +253,11 @@ async function initPhysics() {
 function createSphere(scene, world, radius = 1, position = new THREE.Vector3(0, 5, 0)) {
     // three.js mesh
     const sphereGeometry = new THREE.SphereGeometry(radius);
-    const sphereMaterial = new THREE.MeshPhongMaterial({ color: 0xff0000 });
+    const sphereMaterial = new THREE.MeshPhongMaterial({  
+        color: 0xFFFFFF,
+        emissive: 0x0FFFFF,
+        emissiveIntensity: 1.0
+    });
     const sphereMesh = new THREE.Mesh(sphereGeometry, sphereMaterial);
     sphereMesh.position.set(position.x, position.y, position.z);
     scene.add(sphereMesh);
