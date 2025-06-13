@@ -1,26 +1,23 @@
 <!DOCTYPE html>
-<html>
-
+<html lang="en">
 <head>
-    <meta charset="utf-8">
-    <style>
-        body {
-            margin: 0;
-            overflow: hidden;
-        }
-    </style>
-    <script type="importmap">
+  <meta charset="UTF-8" />
+  <title>Rapier + Three.js Test</title>
+  <style>
+    body { margin: 0; overflow: hidden; }
+    canvas { display: block; }
+  </style>
+  <script type="importmap">
     {
-        "imports": {
-            "three": "https://unpkg.com/three@0.159.0/build/three.module.js",
-            "three/addons/": "https://unpkg.com/three@0.159.0/examples/jsm/"
-        }
+      "imports": {
+        "three": "https://unpkg.com/three@0.159.0/build/three.module.js",
+        "three/addons/": "https://unpkg.com/three@0.159.0/examples/jsm/",
+        "@dimforge/rapier3d-compat": "https://cdn.skypack.dev/@dimforge/rapier3d-compat"
+      }
     }
-    </script>
-    <script type="module" src="./amapDesignTest.js"></script>
+  </script>
 </head>
-
 <body>
+  <script type="module" src="./amapDesignTest.js"></script>
 </body>
-
 </html>

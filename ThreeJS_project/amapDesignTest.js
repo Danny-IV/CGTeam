@@ -1,150 +1,134 @@
-import * as THREE from 'three';  
+import * as THREE from 'three';
+import RAPIER from '@dimforge/rapier3d-compat';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import Stats from 'three/addons/libs/stats.module.js';
-import { GUI } from 'three/addons/libs/lil-gui.module.min.js';
 
-const scene = new THREE.Scene();
-const renderer = new THREE.WebGLRenderer();
-renderer.setClearColor(0xffffff); 
-renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.shadowMap.enabled = true;
-document.body.appendChild(renderer.domElement);
+let scene, camera, renderer, physicsWorld;
+let sphereMesh, sphereBody;
 
-const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
-camera.position.set(-40, 20, 40);
-camera.lookAt(scene.position); // scene의 position default (0,0,0)
-scene.add(camera);
+init();
 
-const stats = new Stats();
-document.body.appendChild(stats.dom);
+async function init() {
+  scene = new THREE.Scene();
+  scene.background = new THREE.Color(0xa0a0a0);
 
-const orbitControls = new OrbitControls(camera, renderer.domElement);
-orbitControls.enableDamping = true;
+  camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+  camera.position.set(0, 20, 50);
 
-// listen to the resize events
-window.addEventListener('resize', onResize, false);
-function onResize() { // resize handler
-    camera.aspect = window.innerWidth / window.innerHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
-}
+  renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  document.body.appendChild(renderer.domElement);
 
-const axesHelper = new THREE.AxesHelper(20);
-scene.add(axesHelper);
+  new OrbitControls(camera, renderer.domElement);
 
-// create the ground plane
-// PlaneGeometry: width, height, widthSegments, heightSegments
-const planeGeometry = new THREE.PlaneGeometry(60, 40, 1, 1);
-const planeMaterial = new THREE.MeshPhongMaterial({color: 0xffffff});
-const plane = new THREE.Mesh(planeGeometry, planeMaterial);
-plane.receiveShadow = true;
-plane.rotation.x = -0.5 * Math.PI;
-plane.position.set(0, 0, 0);
-scene.add(plane);
+  const light = new THREE.DirectionalLight(0xffffff, 1);
+  light.position.set(10, 20, 10);
+  scene.add(light);
+  scene.add(new THREE.AmbientLight(0x404040));
 
-// add ambient lighting
-// AmbientLight: color, intensity
-const ambientLight = new THREE.AmbientLight(0x222222, 0.8);
-scene.add(ambientLight);
+  await RAPIER.init();
+  physicsWorld = new RAPIER.World({ x: 0, y: -9.81, z: 0 });
 
-// SpotLight: color, intensity, 
-// distance (max range of light, attenuation의 범위)
-// angle (radian)
-// penumbra (angle중에 soft edge의 비율 (%))
-// decay: 감쇠 type, 1 (linear), 2 (quadratic, 자연광), 3 (cubic)
-const spotLight = new THREE.SpotLight(0xffffff, 5, 100);
-spotLight.position.set(-10, 60, 0);
-spotLight.castShadow = true;
-spotLight.angle = Math.PI / 8;
-spotLight.penumbra = 0;
-spotLight.decay = 0.5; 
-scene.add(spotLight);
+  // Ground
+  const groundMesh = new THREE.Mesh(
+    new THREE.PlaneGeometry(100, 100),
+    new THREE.MeshStandardMaterial({ color: 0x777777 })
+  );
+  groundMesh.rotation.x = -Math.PI / 2;
+  scene.add(groundMesh);
 
-// add directional light
-const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
-directionalLight.position.set(-10, 10, 20);
-directionalLight.target.position.set(0, 0, 0);
-directionalLight.castShadow = true;
-scene.add(directionalLight);
+  const groundBody = physicsWorld.createRigidBody(RAPIER.RigidBodyDesc.fixed().setTranslation(0, 0, 0));
+  const groundCollider = RAPIER.ColliderDesc.cuboid(50, 0.1, 50);
+  physicsWorld.createCollider(groundCollider, groundBody);
 
-// GUI
-const gui = new GUI();
-const folder1 = gui.addFolder('Render Parameters');
-const folder1Params = {
-    rotationSpeed: 0.02
-};
-folder1.add(folder1Params, 'rotationSpeed', 0, 0.5);
-const folder2 = gui.addFolder('Cube Parameters');
-const folder2Params = {
-    addCube: function() { // addCube button press action
-        const cubeSize = Math.ceil((Math.random() * 3)); // 1, 2, 3 중 하나
-        const cubeGeometry = new THREE.BoxGeometry(cubeSize, cubeSize, cubeSize);
-        // Math.floor: integer로 만들어 주어야 함
-        const randomColor = Math.floor(Math.random() * 0xffffff); 
-        const cubeMaterial = new THREE.MeshPhongMaterial({
-            color: randomColor,
-            shininess: 30
-        });
-        const cube = new THREE.Mesh(cubeGeometry, cubeMaterial);
-        cube.castShadow = true;
-    
-        // position the cube randomly in the scene
-        // planeGeometry: width = 60, height = 40 으로 생성되어 있음
-        // planeGeometry.parameters.width: 이미 생성된 geometry의 attribute를 access
-        cube.position.x = -30 + Math.round((Math.random() * planeGeometry.parameters.width));
-        cube.position.y = Math.round((Math.random() * 5));
-        cube.position.z = -20 + Math.round((Math.random() * planeGeometry.parameters.height));
-    
-        // add the cube to the scene
-        scene.add(cube);
-        folder2Params.numberOfObjects = scene.children.length; // scene에 add된 cube의 개수
-        // GUI 컨트롤러 업데이트
-        numObjects.updateDisplay();
-    },
-    removeCube: function() { // removeCube button press action
-        const allChildren = scene.children;
-        const lastObject = allChildren[allChildren.length - 1];
-        if (lastObject instanceof THREE.Mesh) {
-            scene.remove(lastObject);
-            folder2Params.numberOfObjects = scene.children.length;
-            // GUI 컨트롤러 업데이트
+  // Sphere
+  const radius = 1;
+  const sphereGeo = new THREE.SphereGeometry(radius, 32, 32);
+  const sphereMat = new THREE.MeshStandardMaterial({ color: 0xff0000 });
+  sphereMesh = new THREE.Mesh(sphereGeo, sphereMat);
+  scene.add(sphereMesh);
 
-            numObjects.updateDisplay();
-        }
-    },
-    outputObjects: function() { // outputObjects button press action
-        console.log(scene.children);
-    },
-    // 시작할 때 scene.children.length는 4 (plane, ambientLight, spotLight, directionalLight)
-    numberOfObjects: scene.children.length  // 아래의 numberOfObjects의 개수를 update해 줌
-};
+  const sphereDesc = RAPIER.RigidBodyDesc.dynamic()
+  .setTranslation(0, 5, 30)        // z=30에서 시작
+  .setLinvel(0, 0, -30)  // z- 방향으로 속도 설정
+  .setCcdEnabled(true);            // 터널링 방지
 
-folder2.add(folder2Params, 'addCube');
-folder2.add(folder2Params, 'removeCube');
-folder2.add(folder2Params, 'outputObjects');
-const numObjects = folder2.add(folder2Params, 'numberOfObjects');
+  sphereBody = physicsWorld.createRigidBody(sphereDesc);
+  const sphereCollider = RAPIER.ColliderDesc.ball(radius).setRestitution(0.5);
+  physicsWorld.createCollider(sphereCollider, sphereBody);
 
-function render() {
-    stats.update();
-    orbitControls.update();
-
-    // rotate the cubes around its axes
-    scene.traverse(function (e) {
-        if (e instanceof THREE.Mesh && e != plane) {
-            e.rotation.x += folder1Params.rotationSpeed;
-            e.rotation.y += folder1Params.rotationSpeed;
-            e.rotation.z += folder1Params.rotationSpeed;
-        }
+  // Load wall
+  const loader = new GLTFLoader();
+    loader.load('./models/mapWall.glb', gltf => {
+    const wall = gltf.scene;
+    wall.scale.set(1, 1, 1);
+    scene.add(wall);
+    createBoxColliderFromModel(wall, physicsWorld); // 💡 이걸로 교체
     });
 
-    renderer.render(scene, camera);
-    requestAnimationFrame(render);
+
+  animate();
 }
 
-render();
+// ➤ Trimesh 기반 collider 생성 함수
+function createCollider(model, world) {
+  model.traverse((child) => {
+    if (child.isMesh) {
+      const geometry = child.geometry;
+      if (!geometry || !geometry.attributes.position) return;
+
+      const vertices = geometry.attributes.position.array;
+      const indices = geometry.index ? geometry.index.array : null;
+
+      const rigidBodyDesc = RAPIER.RigidBodyDesc.fixed();
+      const rigidBody = world.createRigidBody(rigidBodyDesc);
+
+      let colliderDesc = null;
+
+      try {
+        colliderDesc = RAPIER.ColliderDesc.convexHull(vertices);
+        if (!colliderDesc) throw new Error("convexHull 실패");
+      } catch (e) {
+        console.warn("⚠️ convexHull 실패, → trimesh로 대체");
+        if (indices) {
+          colliderDesc = RAPIER.ColliderDesc.trimesh(vertices, indices);
+        } else {
+          console.warn("❌ indices 없음 → collider 생성 실패");
+          return;
+        }
+      }
+
+      world.createCollider(colliderDesc, rigidBody);
+    }
+  });
+}
+
+function createBoxColliderFromModel(model, world) {
+  const box = new THREE.Box3().setFromObject(model);
+  const size = new THREE.Vector3();
+  const center = new THREE.Vector3();
+  box.getSize(size);
+  box.getCenter(center);
+
+  console.log("Box size:", size, "center:", center);
+
+  const body = world.createRigidBody(
+    RAPIER.RigidBodyDesc.fixed().setTranslation(center.x, center.y, center.z)
+  );
+
+  const collider = RAPIER.ColliderDesc.cuboid(size.x / 2, size.y / 2, size.z / 2);
+  world.createCollider(collider, body);
+}
 
 
+function animate() {
+  requestAnimationFrame(animate);
+  physicsWorld.step();
 
+  const pos = sphereBody.translation();
+  const rot = sphereBody.rotation();
+  sphereMesh.position.set(pos.x, pos.y, pos.z);
+  sphereMesh.quaternion.set(rot.x, rot.y, rot.z, rot.w);
 
-
-
+  renderer.render(scene, camera);
+}
