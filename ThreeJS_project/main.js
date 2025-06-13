@@ -18,7 +18,7 @@ const spheres = [];
 const cameraOffset = new THREE.Vector3(0, 2, -5);
 let targetPosition = new THREE.Vector3();
 let orbitControls;
-const cameraPosition = new THREE.Vector3(-15, 10, 0);
+const cameraPosition = new THREE.Vector3(0, 40, 70);
 let isTargetFin = false;
 
 let ballcounter = 1;
@@ -70,6 +70,9 @@ async function main() {
     // set map
     const map = await loadGLTFModel(scene, "./models/map.glb");
     createCollider(map, physicsWorld);
+
+    const wall = await loadGLTFModel(scene, "./models/mapWall.glb", new THREE.Vector3(0, 0, 0));
+
 
     initGrid();
     card.setTargetGUI();   // GUI 대신 setTarget 호출하면 GUI없이 카드가 선택됨
