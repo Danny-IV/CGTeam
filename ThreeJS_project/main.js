@@ -217,12 +217,12 @@ function checkIntersection() {
 
 function initThree() {
     scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x0);
+    // scene.background = new THREE.Color(0x0);
 
-    // const textureLoader = new THREE.TextureLoader();
-    // const bgTexture = textureLoader.load('./images/space.png');
-    // bgTexture.encoding = THREE.sRGBEncoding;
-    // scene.background = bgTexture
+    const textureLoader = new THREE.TextureLoader();
+    const bgTexture = textureLoader.load('./images/space.png');
+    bgTexture.encoding = THREE.sRGBEncoding;
+    scene.background = bgTexture
 
     stats = util.initStats();
     renderer = util.initRenderer();
