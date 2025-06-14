@@ -37,10 +37,12 @@ export function loadGLTFModel(scene, filepath, position) {
 export function createCollider(model, world) {
     model.traverse((child) => {
         if (child.isMesh && child.geometry) {
-            child.updateMatrixWorld(true);
+            // mesh position
+            const position = new THREE.Vector3();
+            child.getWorldPosition(position);
 
+            // copy geometry
             const geometry = child.geometry.clone();
-            geometry.applyMatrix4(child.matrixWorld);
 
             const vertices = geometry.attributes.position.array;
             const indices = geometry.index ? geometry.index.array : null;
@@ -49,7 +51,10 @@ export function createCollider(model, world) {
                 console.warn(`Skipping ${child.name} - invalid geometry for trimesh`);
                 return;
             }
-            const rigidBodyDesc = RAPIER.RigidBodyDesc.fixed();
+
+            // rigid body
+            const rigidBodyDesc = RAPIER.RigidBodyDesc.fixed()
+                .setTranslation(position.x, position.y, position.z);
             const rigidBody = world.createRigidBody(rigidBodyDesc);
 
             const colliderDesc = RAPIER.ColliderDesc.trimesh(vertices, indices);
