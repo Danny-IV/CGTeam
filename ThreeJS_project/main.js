@@ -10,8 +10,12 @@ import * as ball from './shootBall.js';
 // gridCells -> controls : 
 // 랜덤으로 선택 된 카드 : card.randomTargetBlock
 // let target = '2x2';
+
 let currentScene;
-let scene, renderer, camera;
+// scenes
+let ingameScene;
+
+let renderer, camera;
 let stats;
 let physicsWorld;
 let boxMesh;
@@ -46,54 +50,53 @@ main().catch(error => {
 async function main() {
     initThree();
     await initPhysics();
-    orbitControls = util.initOrbitControls(camera, renderer);
-    orbitControls.target.set(0, 0, 0);
 
-    ball.createFixedSphere(scene, physicsWorld, spheres, 1, new THREE.Vector3(0, 5, -5));
-
-    createSphere(scene, physicsWorld, 1, new THREE.Vector3(0, 5, 0));
-    createSphere(scene, physicsWorld, 1, new THREE.Vector3(2, 5, 0));
-    createSphere(scene, physicsWorld, 1, new THREE.Vector3(0, 5, 2));
-    createSphere(scene, physicsWorld, 1, new THREE.Vector3(2, 5, 2));
-
-    // createSphere(scene, physicsWorld, 1, new THREE.Vector3(6, 5, 2));
-    // createSphere(scene, physicsWorld, 1, new THREE.Vector3(2, 5, 4));
-    // createSphere(scene, physicsWorld, 1, new THREE.Vector3(2, 5, -2));
-
-    // createBox(scene)
-    // createGround(scene, physicsWorld);
-    createGridHelper(scene);
-    const axesHelper = new THREE.AxesHelper(20); // 10 unit 길이의 축을 보여줌
-    scene.add(axesHelper);
-
-    // set map
-    const map = await loadGLTFModel(scene, "./models/map.glb");
-    createCollider(map, physicsWorld);
-    
-
-    const wall = await loadGLTFModel(scene, "./models/mapWall_H.glb", new THREE.Vector3(0, 0, 0));
-    createCollider(wall, physicsWorld);
-
-
-    // wall, map 색상 설정
-    map.traverse((child) => {
-    if (child.isMesh && child.material) {
-        child.material.color.set(0xffffff);
-        child.material.emissive = new THREE.Color(0xffffff);        // 발광 색상
-        child.material.emissiveIntensity = 0.5;
-    }    });
-
-    wall.traverse((child) => {
-    if (child.isMesh && child.material) {
-        child.material.color.set(0x444444);
-    }    });
-    
+    await setupIngameScene();
+    currentScene = ingameScene;
 
     initGrid();
     card.setTargetGUI();   // GUI 대신 setTarget 호출하면 GUI없이 카드가 선택됨
     // card.setTarget();  
 
     render();
+}
+
+async function setupIngameScene() {
+    ingameScene = initScene();
+
+    const textureLoader = new THREE.TextureLoader();
+    const bgTexture = textureLoader.load('./images/space.png');
+    bgTexture.encoding = THREE.sRGBEncoding;
+    ingameScene.background = bgTexture;
+
+    ball.createFixedSphere(ingameScene, physicsWorld, spheres, 1, new THREE.Vector3(0, 5, -5));
+
+    createGridHelper(ingameScene);
+    const axesHelper = new THREE.AxesHelper(20); // 10 unit 길이의 축을 보여줌
+    ingameScene.add(axesHelper);
+
+    // set map
+    const map = await loadGLTFModel(ingameScene, "./models/map.glb", new THREE.Vector3(0, 0, 0));
+    createCollider(map, physicsWorld);
+
+    const wall = await loadGLTFModel(ingameScene, "./models/mapWall_H.glb", new THREE.Vector3(0, 0, 0));
+    createCollider(wall, physicsWorld);
+
+    // wall, map 색상 설정
+    map.traverse((child) => {
+        if (child.isMesh && child.material) {
+            child.material.color.set(0xffffff);
+            child.material.emissive = new THREE.Color(0xffffff);        // 발광 색상
+            child.material.emissiveIntensity = 0.5;
+        }
+    });
+
+    wall.traverse((child) => {
+        if (child.isMesh && child.material) {
+            child.material.color.set(0x444444);
+        }
+    });
+
 }
 
 /**
@@ -122,15 +125,6 @@ function loadGLTFModel(scene, filepath, position) {
     });
 }
 
-function extractGeometryData(mesh) {
-    const geometry = mesh.geometry;
-    // 정점 데이터 (Float32Array)
-    const vertices = geometry.attributes.position.array;
-    // 인덱스 데이터 (Uint16Array 또는 Uint32Array)
-    const indices = geometry.index ? geometry.index.array : null;
-    return { vertices, indices };
-}
-
 /**
  * Create a collider for the given model and add it to the given physics world.
  * @param {THREE.Object3D} model
@@ -148,7 +142,7 @@ function createCollider(model, world) {
             const indices = geometry.index ? geometry.index.array : null;
 
             if (!vertices || !indices) {
-                console.warn(`Skipping ${child.name} – invalid geometry for trimesh`);
+                console.warn(`Skipping ${child.name} - invalid geometry for trimesh`);
                 return;
             }
             const rigidBodyDesc = RAPIER.RigidBodyDesc.fixed();
@@ -181,7 +175,7 @@ function initGrid() {
             const helper = new THREE.Box3Helper(box, 0xffff00);
 
             // 씬에 추가
-            scene.add(helper);
+            ingameScene.add(helper);
 
             gridHelpers[i].push(helper);
         }
@@ -219,30 +213,32 @@ function checkIntersection() {
     }
 }
 
-function initThree() {
-    scene = new THREE.Scene();
-    // scene.background = new THREE.Color(0x0);
-
-    const textureLoader = new THREE.TextureLoader();
-    const bgTexture = textureLoader.load('./images/space.png');
-    bgTexture.encoding = THREE.sRGBEncoding;
-    scene.background = bgTexture
+function initScene() {
+    const scene = new THREE.Scene();
 
     // light
     util.initDefaultDirectionalLighting(scene);
 
-    renderer = util.initRenderer();
-    camera = util.initCamera(cameraPosition);
-    
-    stats = util.initStats();
-
-    window.addEventListener("resize", onWindowResize, false);
+    return scene;
 }
 
-function onWindowResize() {
-    camera.aspect = window.innerWidth / window.innerHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
+function initThree() {
+    renderer = util.initRenderer();
+    camera = util.initCamera(cameraPosition);
+
+    stats = util.initStats();
+    orbitControls = util.initOrbitControls(camera, renderer);
+    orbitControls.target.set(0, 0, 0);
+
+    window.addEventListener(
+        "resize",
+        () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        },
+        false
+    );
 }
 
 async function initPhysics() {
@@ -259,7 +255,7 @@ async function initPhysics() {
 function createSphere(scene, world, radius = 1, position = new THREE.Vector3(0, 5, 0)) {
     // three.js mesh
     const sphereGeometry = new THREE.SphereGeometry(radius);
-    const sphereMaterial = new THREE.MeshPhongMaterial({  
+    const sphereMaterial = new THREE.MeshPhongMaterial({
         color: 0xFFFFFF,
         emissive: 0x0FFFFF,
         emissiveIntensity: 1.0
@@ -284,28 +280,6 @@ function createSphere(scene, world, radius = 1, position = new THREE.Vector3(0, 
     spheres.push({ mesh: sphereMesh, body: sphereBody, checkSphere: sphere });
 }
 
-
-function createGround(scene, world) {
-    // Ground Mesh 생성
-    const groundGeometry = new THREE.PlaneGeometry(100, 100);
-    const groundMaterial = new THREE.MeshStandardMaterial({ color: 0x777777 });
-    const groundMesh = new THREE.Mesh(groundGeometry, groundMaterial);
-    groundMesh.rotation.x = -Math.PI / 2;
-    groundMesh.receiveShadow = true;  // 그림자 받기
-    scene.add(groundMesh);
-
-    const groundBodyDesc = RAPIER.RigidBodyDesc.fixed()
-        .setTranslation(0, 0, 0);
-    const groundBody = world.createRigidBody(groundBodyDesc);
-
-    const groundColliderDesc = RAPIER.ColliderDesc.cuboid(50, 0.1, 50)
-        .setFriction(2.0)
-        .setRestitution(0.5);
-
-    // Ground Mesh에 대응하는 RAPIER Collider 생성
-    world.createCollider(groundColliderDesc, groundBody);
-}
-
 function createGridHelper(scene) {
     const size = 15;
     const division = 15;
@@ -314,7 +288,6 @@ function createGridHelper(scene) {
     gridHelper.material.transparent = true;
     scene.add(gridHelper);
 }
-
 
 /**
  * Scene을 전환
@@ -327,7 +300,6 @@ function switchScene(targetScene) {
 function render() {
     stats.update();
     orbitControls.update();
-    requestAnimationFrame(render);
     TWEEN.update();
     physicsWorld.step();
 
@@ -339,24 +311,19 @@ function render() {
         obj.mesh.quaternion.set(rot.x, rot.y, rot.z, rot.w);
     });
 
-    // 카메라 위치 보간
-    // targetPosition.set(
-    //     position.x + cameraOffset.x,
-    //     position.y + cameraOffset.y,
-    //     position.z + cameraOffset.z
-    // );
-    // camera.position.lerp(targetPosition, 0.1);
-    // camera.lookAt(position.x, position.y, position.z);
-
     // collision check
     checkIntersection();
-
     updateGridHelper();
-    // console.log(gridCells.map(row => row.map(item => item.indicator)));
 
     let controls = check.convertGridToControls(gridCells);
     isTargetFin = check.checkTarget(controls, card.randomTargetBlock);
-    console.log(isTargetFin);
+
+    if (isTargetFin) {
+        console.log("game end!");
+    }
+    else {
+        requestAnimationFrame(render);
+    }
 
     // 친 공이 멈추면 새로운 공을 생성
     if (
@@ -364,11 +331,11 @@ function render() {
         !lastShotBall.isFixed &&        // 그 공이 날아간 상태(isFixed=false)
         ball.isBallStopped(lastShotBall) // 그리고 충분히 멈췄으면
     ) {
-        ball.createFixedSphere(scene, physicsWorld, spheres, 1, new THREE.Vector3(0, 5, -5));
+        ball.createFixedSphere(ingameScene, physicsWorld, spheres, 1, new THREE.Vector3(0, 5, -5));
         ballcounter += 1;
         lastShotBall = null; // 새 공 생성 후 더 이상 중복 생성을 막기 위해 null
     }
 
     // render current Scene
-    renderer.render(scene, camera);
+    renderer.render(currentScene, camera);
 }
