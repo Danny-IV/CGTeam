@@ -1,12 +1,12 @@
 import * as THREE from 'three';
 import RAPIER from 'https://cdn.skypack.dev/@dimforge/rapier3d-compat';
-import * as util from './util.js';
 import TWEEN from 'https://cdnjs.cloudflare.com/ajax/libs/tween.js/18.6.4/tween.esm.js';
+import { GUI } from 'three/addons/libs/lil-gui.module.min.js';
+import * as util from './util.js';
 import * as check from './checkBlock.js';
 import * as card from './cardAnimation.js';
 import * as ball from './shootBall.js';
 import { loadGLTFModel, createCollider, createSphere, createGridHelper } from './createObject.js';
-import { GUI } from 'three/addons/libs/lil-gui.module.min.js';
 
 // gridCells -> controls : 
 // 랜덤으로 선택 된 카드 : card.randomTargetBlock
@@ -51,7 +51,7 @@ async function main() {
     loadLevel(ingameLevel);
     camera.position.set(0, 20, 20);
 
-    // card.setTargetGUI();   // GUI 대신 setTarget 호출하면 GUI없이 카드가 선택됨
+    card.setTargetGUI();   // GUI 대신 setTarget 호출하면 GUI없이 카드가 선택됨
     // card.setTarget();  
 
     const gui = new GUI();
@@ -145,6 +145,14 @@ async function setupIngameScene() {
 function setupEndScene() {
     const scene = initScene();
     const world = initWorld();
+
+    // TODO: end scene
+    const loader = new THREE.TextureLoader();
+    const texture = loader.load('./images/congratulation.png');
+    const geometry = new THREE.PlaneGeometry(10, 5);
+    const material = new THREE.MeshBasicMaterial({ map: texture });
+    const sprite = new THREE.Mesh(geometry, material);
+    scene.add(sprite);
 
     const globals = { snapshot: world.takeSnapshot() };
     return { scene: scene, world: world, globals: globals };
