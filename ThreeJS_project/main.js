@@ -7,6 +7,7 @@ import * as check from './checkBlock.js';
 import * as card from './cardAnimation.js';
 import * as ball from './shootBall.js';
 import { loadGLTFModel, createCollider, createSphere, createGridHelper } from './createObject.js';
+import { Grid } from './grid.js';
 
 // gridCells -> controls : 
 // 랜덤으로 선택 된 카드 : card.randomTargetBlock
@@ -29,10 +30,6 @@ let ballcounter = 1;
 let spawnTimeout = null;
 let lastShotBall = null; // 최근에 날아간 공
 
-// grid
-const gridSize = 5;
-const gridCells = [];
-const gridCellHelpers = [];
 
 main().catch(error => {
     console.error("Failed to initialize:", error);
@@ -84,7 +81,9 @@ async function setupStartScene() {
         spheres.push(createSphere(scene, world, 1, pos));
     });
 
-    const globals = { snapshot: world.takeSnapshot(), spheres: spheres };
+    const grid = new Grid(scene, 5);
+
+    const globals = { snapshot: world.takeSnapshot(), spheres: spheres, grid: grid };
     return { scene: scene, world: world, globals: globals };
 }
 
@@ -113,8 +112,7 @@ async function setupIngameScene() {
     const axesHelper = new THREE.AxesHelper(20); // 10 unit 길이의 축을 보여줌
     scene.add(axesHelper);
 
-    // gridCells
-    initGridCells(scene);
+    const grid = new Grid(scene, 5);
 
     // set map
     const map = await loadGLTFModel(scene, "./models/map.glb", new THREE.Vector3(0, 0, 0));
@@ -138,7 +136,7 @@ async function setupIngameScene() {
         }
     });
 
-    const globals = { snapshot: world.takeSnapshot(), spheres: spheres };
+    const globals = { snapshot: world.takeSnapshot(), spheres: spheres, grid: grid };
     return { scene: scene, world: world, globals: globals };
 }
 
@@ -169,63 +167,6 @@ function loadLevel(level) {
     currentLevel.globals = level.globals;
 
     console.log("Level Loaded");
-}
-
-function initGridCells(scene) {
-    const cellSize = 1;
-    const cellHeight = 1;
-    const cellGap = 2;
-    for (let i = 0; i < gridSize; i++) {
-        gridCells[i] = [];
-        gridCellHelpers[i] = [];
-        for (let j = 0; j < gridSize; j++) {
-            const x = (cellSize + cellGap) * (i - ((gridSize - 1) / 2));
-            const z = (cellSize + cellGap) * (j - ((gridSize - 1) / 2));
-            const box = new THREE.Box3();
-            box.setFromCenterAndSize(
-                new THREE.Vector3(x, 0, z),
-                new THREE.Vector3(cellSize, cellHeight, cellSize)
-            );
-            gridCells[i].push({ cell: box, indicator: false });
-
-            // Box3Helper 생성 (노란색)
-            const helper = new THREE.Box3Helper(box, 0xffff00);
-
-            // ingame Scene에 추가
-            scene.add(helper);
-
-            gridCellHelpers[i].push(helper);
-        }
-    }
-}
-
-function updateGridCellHelper() {
-    for (let i = 0; i < gridSize; i++) {
-        for (let j = 0; j < gridSize; j++) {
-            if (gridCells[i][j].indicator) {
-                gridCellHelpers[i][j].material.color.set(0xff0000);
-            }
-            else {
-                gridCellHelpers[i][j].material.color.set(0xffff00);
-            }
-        }
-    }
-}
-
-function checkIntersection(level) {
-    // update checkSpere location
-    level.globals.spheres.forEach(obj => {
-        obj.checkSphere.center.set(obj.mesh.position.x, obj.mesh.position.y, obj.mesh.position.z);
-    });
-
-    for (let i = 0; i < gridSize; i++) {
-        for (let j = 0; j < gridSize; j++) {
-            const box = gridCells[i][j].cell;
-            gridCells[i][j].indicator = level.globals.spheres.map(sphere => sphere.checkSphere).some(element => {
-                return box.intersectsSphere(element);
-            })
-        }
-    }
 }
 
 function initScene() {
@@ -276,11 +217,11 @@ function render() {
             obj.mesh.quaternion.set(rot.x, rot.y, rot.z, rot.w);
         });
         // collision check
-        checkIntersection(currentLevel);
-        updateGridCellHelper();
+        currentLevel.globals.grid.checkIntersection(currentLevel);
+        currentLevel.globals.grid.updateCellHelper();
     }
 
-    let controls = check.convertGridToControls(gridCells);
+    let controls = check.convertGridToControls(currentLevel.globals.grid.cells);
     isTargetFin = check.checkTarget(controls, card.randomTargetBlock);
 
     if (isTargetFin) {
