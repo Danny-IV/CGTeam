@@ -95,7 +95,7 @@ export function createSphere(scene, world, radius = 1, position = new THREE.Vect
     // for collision check
     const sphere = new THREE.Sphere(position, radius);
 
-    spheres.push({ mesh: sphereMesh, body: sphereBody, checkSphere: sphere });
+    return { mesh: sphereMesh, body: sphereBody, checkSphere: sphere };
 }
 
 /**

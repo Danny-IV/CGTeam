@@ -6,30 +6,28 @@ import * as check from './checkBlock.js';
 import * as card from './cardAnimation.js';
 import * as ball from './shootBall.js';
 import { loadGLTFModel, createCollider, createSphere, createGridHelper } from './createObject.js';
+import { GUI } from 'three/addons/libs/lil-gui.module.min.js';
 
 // gridCells -> controls : 
 // 랜덤으로 선택 된 카드 : card.randomTargetBlock
 // let target = '2x2';
 
-let currentScene;
-const scenes = [];
+// 레벨은 스테이지를 의미
+let currentLevel = { scene: null, world: null, globals: null };
+const levels = [];
 
+// three.js 공용 변수
 let renderer, camera;
 let stats;
-let physicsWorld;
-const spheres = [];
 let orbitControls;
+
+//  게임 종료 변수
 let isTargetFin = false;
 
+// TODO: 아래 변수들 모두 levels의 변수로 만들기
 let ballcounter = 1;
 let spawnTimeout = null;
 let lastShotBall = null; // 최근에 날아간 공
-
-// 이벤트
-window.addEventListener('pointerdown', (event) => ball.onPowerStart(event, spheres, camera, physicsWorld));
-window.addEventListener('pointerup', (event) =>
-    ball.onPowerRelease(event, spheres, camera, physicsWorld, (obj) => { lastShotBall = obj; })
-);
 
 // grid
 const gridSize = 5;
@@ -42,55 +40,88 @@ main().catch(error => {
 
 async function main() {
     initThree();
-    await initPhysics();
+    await RAPIER.init();
 
-    const startScene = setupStartScene();
-    const ingameScene = await setupIngameScene();
-    const endScene = setupEndScene();
-    // scenes array [startScene, ingameScene, endScene]
-    currentScene = scenes[1];
+    const startLevel = await setupStartScene();
+    const ingameLevel = await setupIngameScene();
+    const endLevel = setupEndScene();
+    levels.push(startLevel, ingameLevel, endLevel);
 
+    // 처음 시작하는 scene
+    loadLevel(startLevel);
+    camera.position.set(0, 20, 20);
 
-    initGridCells(ingameScene);
-    card.setTargetGUI();   // GUI 대신 setTarget 호출하면 GUI없이 카드가 선택됨
+    // card.setTargetGUI();   // GUI 대신 setTarget 호출하면 GUI없이 카드가 선택됨
     // card.setTarget();  
+
+    const gui = new GUI();
+    const levelFolder = gui.addFolder('Level');
+    levelFolder.add(levels, 'currentIndex', [0, 1, 2]).name('Change Level').onChange((value) => {
+        loadLevel(levels[value]);
+    }).listen();
 
     render();
 }
 
 async function setupStartScene() {
     const scene = initScene();
+    const world = initWorld();
+    const spheres = [];
 
     // TODO: start scene, button, text
     const map = await loadGLTFModel(scene, "./models/map.glb");
+    createCollider(map, world);
 
-    // camera set
-    camera.position.set(0, 10, 10);
+    const positions = [
+        new THREE.Vector3(-5, 5, 0),
+        new THREE.Vector3(0, 5, 0),
+        new THREE.Vector3(5, 5, 0),
+        new THREE.Vector3(-5, 5, 5),
+        new THREE.Vector3(0, 5, 5),
+        new THREE.Vector3(5, 5, 5)
+    ];
+    positions.forEach(pos => {
+        const sphere = createSphere(scene, world, 1, pos);
+        spheres.push(sphere);
+    });
 
-    scenes.push(scene);
-    return scene;
+    const globals = { snapshot: world.takeSnapshot(), spheres: spheres };
+    return { scene: scene, world: world, globals: globals };
 }
 
 async function setupIngameScene() {
     const scene = initScene();
+    const world = initWorld();
+    const spheres = [];
 
     const textureLoader = new THREE.TextureLoader();
     const bgTexture = textureLoader.load('./images/space.png');
     bgTexture.encoding = THREE.sRGBEncoding;
     scene.background = bgTexture;
 
-    ball.createFixedSphere(scene, physicsWorld, spheres, 1, new THREE.Vector3(0, 5, -5));
+    createSphere(scene, world, 1, new THREE.Vector3(0, 5, 0));
+
+    ball.createFixedSphere(scene, world, spheres, 1, new THREE.Vector3(0, 5, 0));
+
+    // 이벤트
+    window.addEventListener('pointerdown', (event) => ball.onPowerStart(event, spheres, camera, world));
+    window.addEventListener('pointerup', (event) =>
+        ball.onPowerRelease(event, spheres, camera, world, (obj) => { lastShotBall = obj; })
+    );
 
     createGridHelper(scene);
     const axesHelper = new THREE.AxesHelper(20); // 10 unit 길이의 축을 보여줌
     scene.add(axesHelper);
 
-    // set map
-    const map = await loadGLTFModel(scene, "./models/map.glb", new THREE.Vector3(0, 2, 0));
-    createCollider(map, physicsWorld);
+    // gridCells
+    initGridCells(scene);
 
-    const wall = await loadGLTFModel(scene, "./models/mapWall_H.glb", new THREE.Vector3(0, 0, 0));
-    createCollider(wall, physicsWorld);
+    // set map
+    const map = await loadGLTFModel(scene, "./models/map.glb", new THREE.Vector3(0, 0, 0));
+    createCollider(map, world);
+
+    const wall = await loadGLTFModel(scene, "./models/mapWall_H.glb", new THREE.Vector3(0, -1, 0));
+    createCollider(wall, world);
 
     // wall, map 색상 설정
     map.traverse((child) => {
@@ -107,18 +138,29 @@ async function setupIngameScene() {
         }
     });
 
-    // camera set
-    camera.position.set(0, 40, 40);
-
-    scenes.push(scene);
-    return scene;
+    const globals = { snapshot: world.takeSnapshot(), spheres: spheres };
+    return { scene: scene, world: world, globals: globals };
 }
 
 function setupEndScene() {
     const scene = initScene();
+    const world = initWorld();
 
-    scenes.push(scene);
-    return scene;
+    const globals = { snapshot: world.takeSnapshot() };
+    return { scene: scene, world: world, globals: globals };
+}
+
+function loadLevel(level) {
+    // reset world
+    if (!level.globals.snapshot || !(level.globals.snapshot instanceof Uint8Array)) {
+        throw new Error("올바른 스냅샷 데이터가 필요합니다.");
+    }
+
+    currentLevel.scene = level.scene;
+    currentLevel.world = level.world;
+    currentLevel.globals = level.globals;
+
+    console.log("Level Loaded");
 }
 
 function initGridCells(scene) {
@@ -164,16 +206,16 @@ function updateGridCellHelper() {
     }
 }
 
-function checkIntersection() {
+function checkIntersection(level) {
     // update checkSpere location
-    spheres.forEach(obj => {
+    level.globals.spheres.forEach(obj => {
         obj.checkSphere.center.set(obj.mesh.position.x, obj.mesh.position.y, obj.mesh.position.z);
     });
 
     for (let i = 0; i < gridSize; i++) {
         for (let j = 0; j < gridSize; j++) {
             const box = gridCells[i][j].cell;
-            gridCells[i][j].indicator = spheres.map(sphere => sphere.checkSphere).some(element => {
+            gridCells[i][j].indicator = level.globals.spheres.map(sphere => sphere.checkSphere).some(element => {
                 return box.intersectsSphere(element);
             })
         }
@@ -187,6 +229,11 @@ function initScene() {
     util.initDefaultDirectionalLighting(scene);
 
     return scene;
+}
+
+function initWorld() {
+    const world = new RAPIER.World({ x: 0, y: -9.81, z: 0 });
+    return world;
 }
 
 function initThree() {
@@ -208,36 +255,25 @@ function initThree() {
     );
 }
 
-async function initPhysics() {
-    await RAPIER.init();
-    physicsWorld = new RAPIER.World({ x: 0.0, y: -9.81, z: 0.0 });
-}
-
-/**
- * Scene을 전환
- * @param {THREE.Scene} targetScene 전환할 Scene
- */
-function switchScene(targetScene) {
-    currentScene = targetScene;
-}
-
 function render() {
     stats.update();
     orbitControls.update();
     TWEEN.update();
-    physicsWorld.step();
+    currentLevel.world.step();
 
     // 메시 위치 동기화
-    spheres.forEach(obj => {
-        const pos = obj.body.translation();
-        const rot = obj.body.rotation();
-        obj.mesh.position.set(pos.x, pos.y, pos.z);
-        obj.mesh.quaternion.set(rot.x, rot.y, rot.z, rot.w);
-    });
+    if (currentLevel.globals.spheres) {
+        currentLevel.globals.spheres.forEach(obj => {
+            const pos = obj.body.translation();
+            const rot = obj.body.rotation();
+            obj.mesh.position.set(pos.x, pos.y, pos.z);
+            obj.mesh.quaternion.set(rot.x, rot.y, rot.z, rot.w);
+        });
+        // collision check
+        checkIntersection(currentLevel);
+        updateGridCellHelper();
+    }
 
-    // collision check
-    checkIntersection();
-    updateGridCellHelper();
 
     let controls = check.convertGridToControls(gridCells);
     isTargetFin = check.checkTarget(controls, card.randomTargetBlock);
@@ -255,11 +291,11 @@ function render() {
         !lastShotBall.isFixed &&        // 그 공이 날아간 상태(isFixed=false)
         ball.isBallStopped(lastShotBall) // 그리고 충분히 멈췄으면
     ) {
-        ball.createFixedSphere(scenes[0], physicsWorld, spheres, 1, new THREE.Vector3(0, 5, -5));
+        ball.createFixedSphere(levels[1].scene, levels[1].world, levels[1].globals.spheres, 1, new THREE.Vector3(0, 5, -5));
         ballcounter += 1;
         lastShotBall = null; // 새 공 생성 후 더 이상 중복 생성을 막기 위해 null
     }
 
     // render current Scene
-    renderer.render(currentScene, camera);
+    renderer.render(currentLevel.scene, camera);
 }
