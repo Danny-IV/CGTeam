@@ -48,7 +48,7 @@ async function main() {
     levels.push(startLevel, ingameLevel, endLevel);
 
     // 처음 시작하는 scene
-    loadLevel(startLevel);
+    loadLevel(ingameLevel);
     camera.position.set(0, 20, 20);
 
     // card.setTargetGUI();   // GUI 대신 setTarget 호출하면 GUI없이 카드가 선택됨
@@ -81,8 +81,7 @@ async function setupStartScene() {
         new THREE.Vector3(5, 5, 5)
     ];
     positions.forEach(pos => {
-        const sphere = createSphere(scene, world, 1, pos);
-        spheres.push(sphere);
+        spheres.push(createSphere(scene, world, 1, pos));
     });
 
     const globals = { snapshot: world.takeSnapshot(), spheres: spheres };
@@ -99,7 +98,8 @@ async function setupIngameScene() {
     bgTexture.encoding = THREE.sRGBEncoding;
     scene.background = bgTexture;
 
-    createSphere(scene, world, 1, new THREE.Vector3(0, 5, 0));
+    spheres.push(createSphere(scene, world, 1, new THREE.Vector3(5, 5, 0)));
+    spheres.push(createSphere(scene, world, 1, new THREE.Vector3(-5, 5, 0)));
 
     ball.createFixedSphere(scene, world, spheres, 1, new THREE.Vector3(0, 5, 0));
 
@@ -189,8 +189,6 @@ function initGridCells(scene) {
             gridCellHelpers[i].push(helper);
         }
     }
-    // console.log(gridCells);
-    // console.log(check.convertGridToControls(gridCells));
 }
 
 function updateGridCellHelper() {
@@ -273,7 +271,6 @@ function render() {
         checkIntersection(currentLevel);
         updateGridCellHelper();
     }
-
 
     let controls = check.convertGridToControls(gridCells);
     isTargetFin = check.checkTarget(controls, card.randomTargetBlock);
