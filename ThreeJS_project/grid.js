@@ -53,7 +53,6 @@ export class Grid {
      */
     updateCellHelper() {
         if (!this.helpers) {
-            console.error("no helpers");
             return;
         }
         for (let i = 0; i < this.size; i++) {

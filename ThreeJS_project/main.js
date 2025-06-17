@@ -9,6 +9,9 @@ import * as card from './cardAnimation.js';
 import * as ball from './shootBall.js';
 import { loadGLTFModel, createCollider, createSphere, createGridHelper } from './createObject.js';
 import { Grid } from './grid.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPixelatedPass } from './RenderPixelatedPass.js';
+
 
 // gridCells -> controls : convertGridToControls(gridCells)
 // 모양 랜덤 선택 : card.checkTarget(controls, target)
@@ -27,7 +30,6 @@ let orbitControls;
 //  게임 종료 변수
 let isTargetFin = false;
 
-// TODO: 아래 변수들 모두 levels의 변수로 만들기
 let ballcounter = 1;
 let spawnTimeout = null;
 let lastShotBall = null; // 최근에 날아간 공
@@ -40,7 +42,6 @@ main().catch(error => {
 async function main() {
     initThree();
     await RAPIER.init();
-
 
     const startLevel = await setupStartScene();
     const ingameLevel = await setupIngameScene();
@@ -107,32 +108,29 @@ async function setupIngameScene() {
         ball.onPowerRelease(event, spheres, camera, world, (obj) => { lastShotBall = obj; })
     );
 
-    createGridHelper(scene);
-    const axesHelper = new THREE.AxesHelper(20); // 10 unit 길이의 축을 보여줌
-    scene.add(axesHelper);
+    // createGridHelper(scene);
+    // const axesHelper = new THREE.AxesHelper(20); // 10 unit 길이의 축을 보여줌
+    // scene.add(axesHelper);
 
     const grid = new Grid(5);
-    grid.createBox3Helpers(scene);
+    // grid.createBox3Helpers(scene);
 
     // set map
     const map = await loadGLTFModel(scene, "./models/map.glb", new THREE.Vector3(0, 0, 0));
     createCollider(map, world);
-
-    const wall = await loadGLTFModel(scene, "./models/mapWall_H.glb", new THREE.Vector3(0, -1, 0));
-    createCollider(wall, world);
-
-    // wall, map 색상 설정
-    map.traverse((child) => {
-        if (child.isMesh && child.material) {
-            child.material.color.set(0xffffff);
-            child.material.emissive = new THREE.Color(0xffffff);        // 발광 색상
-            child.material.emissiveIntensity = 0.5;
+    map.traverse((object) => {
+        if (object.isMesh) {
+            object.material.color.set(0x888888); // Set color to dark gray
+            object.material.needsUpdate = true;
         }
     });
 
-    wall.traverse((child) => {
-        if (child.isMesh && child.material) {
-            child.material.color.set(0x444444);
+    const wall = await loadGLTFModel(scene, "./models/wall.glb", new THREE.Vector3(0, -1, 0));
+    createCollider(wall, world);
+    wall.traverse((object) => {
+        if (object.isMesh) {
+            object.material.color.set(0xaaaaaa); // Set color to dark gray
+            object.material.needsUpdate = true;
         }
     });
 
@@ -169,23 +167,8 @@ function loadLevel(level) {
     console.log("Level Loaded");
 }
 
-function removeSpheresBelowY(spheres, thresholdY) {
-    spheres.forEach((sphere, index) => {
-        if (sphere.mesh.position.y < thresholdY) {
-            sphere.mesh.geometry.dispose();
-            sphere.mesh.material.dispose();
-            currentLevel.scene.remove(sphere.mesh);
-            spheres.splice(index, 1);
-            lastShotBall = null;
-            console.log(`sphere removed: ${sphere.mesh.position.x}, ${sphere.mesh.position.y}, ${sphere.mesh.position.z}`);
-        }
-    });
-}
-
-
 function initScene() {
     const scene = new THREE.Scene();
-
     // light
     util.initDefaultDirectionalLighting(scene);
 
@@ -207,6 +190,10 @@ function initThree() {
     orbitControls.enableZoom = false;
     orbitControls.enableDamping = true;
     orbitControls.dampingFactor = 0.1;
+    orbitControls.minAzimuthAngle = -Math.PI / 6;
+    orbitControls.maxAzimuthAngle = Math.PI / 6;
+    orbitControls.minPolarAngle = Math.PI / 4;
+    orbitControls.maxPolarAngle = Math.PI - Math.PI / 4;
 
     window.addEventListener(
         "resize",
@@ -230,7 +217,7 @@ function render() {
     // 공이 발사 중이면, 카메라 고정, 공을 lookAt
     if (lastShotBall) {
         orbitControls.enabled = false;
-        camera.position.set(0, 15, 35);
+        camera.position.lerp(new THREE.Vector3(0, 15, 35), 0.1);
         camera.lookAt(lastShotBall.mesh.position);
     }
     // 공 발사 중 아니면 OrbitControl
@@ -266,7 +253,7 @@ function render() {
 
     if (isTargetFin) {
         console.log("game end!");
-        loadLevel(levels[2]); // Load endLevel
+        // loadLevel(levels[2]); // Load endLevel
         isTargetFin = false;
         requestAnimationFrame(render);
     }
@@ -294,5 +281,14 @@ function render() {
     }
 
     // render current Scene
-    renderer.render(currentLevel.scene, camera);
+    // renderer.render(currentLevel.scene, camera);
+
+    // EffectComposer 생성
+    const composer = new EffectComposer(renderer);
+
+    // RenderPixelatedPass 추가 (픽셀 크기: 5)
+    const renderPixelatedPass = new RenderPixelatedPass(5, currentLevel.scene, camera);
+    composer.addPass(renderPixelatedPass);
+
+    composer.render();
 }

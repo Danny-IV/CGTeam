@@ -14,7 +14,20 @@ const powerSpeed = 30; // 게이지 속도 (높을수록 빠름, ms)
 // 공중에 고정된 공 생성
 export function createFixedSphere(scene, world, spheres, radius = 1, position = new THREE.Vector3(0, 5, 0)) {
     const sphereGeometry = new THREE.SphereGeometry(radius);
-    const sphereMaterial = new THREE.MeshPhongMaterial({ color: 0xff0000 });
+    const textureLoader = new THREE.TextureLoader();
+    const textureFiles = [
+        '2k_earth_daymap.jpg',
+        '2k_jupiter.jpg',
+        '2k_mars.jpg',
+        '2k_mercury.jpg',
+        '2k_neptune.jpg',
+        '2k_saturn.jpg',
+        '2k_uranus.jpg',
+        '2k_venus_surface.jpg'
+    ];
+    const texture = textureLoader.load(`./images/${textureFiles[Math.floor(Math.random() * textureFiles.length)]}`);
+    const sphereMaterial = new THREE.MeshPhongMaterial({ map: texture });
+
     const sphereMesh = new THREE.Mesh(sphereGeometry, sphereMaterial);
     sphereMesh.position.copy(position);
     scene.add(sphereMesh);
@@ -24,7 +37,7 @@ export function createFixedSphere(scene, world, spheres, radius = 1, position = 
     const sphereBody = world.createRigidBody(sphereBodyDesc);
 
     const sphereColliderDesc = RAPIER.ColliderDesc.ball(radius)
-        .setRestitution(0.8)
+        .setRestitution(0.6)
         .setFriction(0.3);
     world.createCollider(sphereColliderDesc, sphereBody);
 
@@ -132,7 +145,7 @@ export function onPowerRelease(event, spheres, camera, physicsWorld, setLastShot
             .normalize();
 
         // power의 스케일을 좀 키우고 싶으면 *2~*3 해도 됨
-        const impulseStrength = power*2.5; // 나중에 맵과 정지된 공간에 거리가 멀때 조정
+        const impulseStrength = power * 2.5; // 나중에 맵과 정지된 공간에 거리가 멀때 조정
 
         // direction이 정 가운데에서만 나오면 위로 잘 안 뜨므로,
         // 약간의 "위쪽 보정값" 추가
