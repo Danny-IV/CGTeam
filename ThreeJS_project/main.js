@@ -81,7 +81,8 @@ async function setupStartScene() {
         spheres.push(createSphere(scene, world, 1, pos));
     });
 
-    const grid = new Grid(scene, 5);
+    const grid = new Grid(5);
+    grid.createBox3Helpers(scene);
 
     const globals = { snapshot: world.takeSnapshot(), spheres: spheres, grid: grid };
     return { scene: scene, world: world, globals: globals };
@@ -112,7 +113,8 @@ async function setupIngameScene() {
     const axesHelper = new THREE.AxesHelper(20); // 10 unit 길이의 축을 보여줌
     scene.add(axesHelper);
 
-    const grid = new Grid(scene, 5);
+    const grid = new Grid(5);
+    grid.createBox3Helpers(scene);
 
     // set map
     const map = await loadGLTFModel(scene, "./models/map.glb", new THREE.Vector3(0, 0, 0));
