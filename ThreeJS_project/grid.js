@@ -15,10 +15,8 @@ export class Grid {
     constructor(size) {
         this.size = size;
         this.cells = [];
-        this.helpers = [];
         for (let i = 0; i < size; i++) {
             this.cells[i] = [];
-            this.helpers[i] = [];
             for (let j = 0; j < size; j++) {
                 const x = (this.cellSize + this.cellGap) * (i - ((size - 1) / 2));
                 const z = (this.cellSize + this.cellGap) * (j - ((size - 1) / 2));
@@ -37,7 +35,9 @@ export class Grid {
      * @param {THREE.Scene} scene The scene to add the Box3Helpers to.
      */
     createBox3Helpers(scene) {
+        this.helpers = [];
         for (let i = 0; i < this.size; i++) {
+            this.helpers[i] = [];
             for (let j = 0; j < this.size; j++) {
                 const box = this.cells[i][j].cell;
                 const helper = new THREE.Box3Helper(box, 0xffff00);
@@ -52,6 +52,10 @@ export class Grid {
      * If a sphere is intersecting, the color is set to red (0xff0000); otherwise, it is set to yellow (0xffff00).
      */
     updateCellHelper() {
+        if (!this.helpers) {
+            console.error("no helpers");
+            return;
+        }
         for (let i = 0; i < this.size; i++) {
             for (let j = 0; j < this.size; j++) {
                 if (this.cells[i][j].indicator) {
