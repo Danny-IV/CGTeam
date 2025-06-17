@@ -176,6 +176,7 @@ function removeSpheresBelowY(spheres, thresholdY) {
             sphere.mesh.material.dispose();
             currentLevel.scene.remove(sphere.mesh);
             spheres.splice(index, 1);
+            lastShotBall = null;
             console.log(`sphere removed: ${sphere.mesh.position.x}, ${sphere.mesh.position.y}, ${sphere.mesh.position.z}`);
         }
     });
@@ -224,7 +225,6 @@ function render() {
     currentLevel.world.step();
 
     // camera control
-    console.log(lastShotBall);
     orbitControls.update();
 
     // 공이 발사 중이면, 카메라 고정, 공을 lookAt
@@ -237,7 +237,7 @@ function render() {
     else {
         orbitControls.enabled = true;
         if (currentLevel.globals.spheres) {
-            const sphere = currentLevel.globals.spheres[0];
+            const sphere = currentLevel.globals.spheres[currentLevel.globals.spheres.length - 1];
             orbitControls.target.set(sphere.mesh.position.x, sphere.mesh.position.y, sphere.mesh.position.z);
         }
     }
@@ -256,7 +256,7 @@ function render() {
         currentLevel.globals.grid.updateCellHelper();
 
         // remove spheres below y=-20
-        removeSpheresBelowY(currentLevel.globals.spheres, -20);
+        // removeSpheresBelowY(currentLevel.globals.spheres, -20);
     }
 
     if (currentLevel.globals.grid) {
@@ -280,10 +280,17 @@ function render() {
         !lastShotBall.isFixed &&        // 그 공이 날아간 상태(isFixed=false)
         ball.isBallStopped(lastShotBall) // 그리고 충분히 멈췄으면
     ) {
-        ball.createFixedSphere(levels[1].scene, levels[1].world, levels[1].globals.spheres, 1, new THREE.Vector3(0, 5, -5));
+        ball.createFixedSphere(levels[1].scene, levels[1].world, levels[1].globals.spheres, 1, new THREE.Vector3(0, 10, 20));
         ballcounter += 1;
         lastShotBall = null; // 새 공 생성 후 더 이상 중복 생성을 막기 위해 null
         console.log("null로 바뀜");
+    }
+    if (lastShotBall && lastShotBall.mesh.position.y < -20) {
+        lastShotBall.mesh.geometry.dispose();
+        lastShotBall.mesh.material.dispose();
+        currentLevel.scene.remove(lastShotBall.mesh);
+        ball.createFixedSphere(levels[1].scene, levels[1].world, levels[1].globals.spheres, 1, new THREE.Vector3(0, 10, 20));
+        lastShotBall = null;
     }
 
     // render current Scene
