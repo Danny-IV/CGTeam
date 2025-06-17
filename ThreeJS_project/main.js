@@ -117,7 +117,7 @@ async function setupIngameScene() {
     createCollider(map, world);
     map.traverse((object) => {
         if (object.isMesh) {
-            object.material.color.set(0x888888); // Set color to dark gray
+            object.material.color.set(0x555555); // Set color to dark gray
             object.material.needsUpdate = true;
         }
     });
@@ -126,7 +126,7 @@ async function setupIngameScene() {
     createCollider(wall, world);
     wall.traverse((object) => {
         if (object.isMesh) {
-            object.material.color.set(0xaaaaaa); // Set color to dark gray
+            object.material.color.set(0x555555); // Set color to dark gray
             object.material.needsUpdate = true;
         }
     });
