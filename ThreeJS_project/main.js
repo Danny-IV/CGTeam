@@ -100,7 +100,18 @@ async function setupIngameScene() {
     ball.createFixedSphere(scene, world, spheres, 1, new THREE.Vector3(0, 10, 20));
 
     // 이벤트
-    window.addEventListener('pointerdown', (event) => ball.onPowerStart(event, spheres, camera, world));
+    window.addEventListener('pointerdown', (event) => {
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+        mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+        mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+        raycaster.setFromCamera(mouse, camera);
+        const intersects = raycaster.intersectObjects(spheres.map(s => s.mesh));
+        console.log(intersects.length);
+        if (intersects.length > 0) {
+            ball.onPowerStart(event, spheres, camera, world);
+        }
+    });
     window.addEventListener('pointerup', (event) =>
         ball.onPowerRelease(event, spheres, camera, world, (obj) => { lastShotBall = obj; })
     );
