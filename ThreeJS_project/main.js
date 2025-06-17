@@ -9,9 +9,6 @@ import * as card from './cardAnimation.js';
 import * as ball from './shootBall.js';
 import { loadGLTFModel, createCollider, createSphere, createGridHelper } from './createObject.js';
 import { Grid } from './grid.js';
-import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
-import { RenderPixelatedPass } from './RenderPixelatedPass.js';
-
 
 // gridCells -> controls : convertGridToControls(gridCells)
 // 모양 랜덤 선택 : card.checkTarget(controls, target)
@@ -281,14 +278,5 @@ function render() {
     }
 
     // render current Scene
-    // renderer.render(currentLevel.scene, camera);
-
-    // EffectComposer 생성
-    const composer = new EffectComposer(renderer);
-
-    // RenderPixelatedPass 추가 (픽셀 크기: 5)
-    const renderPixelatedPass = new RenderPixelatedPass(5, currentLevel.scene, camera);
-    composer.addPass(renderPixelatedPass);
-
-    composer.render();
+    renderer.render(currentLevel.scene, camera);
 }
