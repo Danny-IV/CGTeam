@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import RAPIER from 'https://cdn.skypack.dev/@dimforge/rapier3d-compat';
 import TWEEN from 'https://cdnjs.cloudflare.com/ajax/libs/tween.js/18.6.4/tween.esm.js';
 import { GUI } from 'three/addons/libs/lil-gui.module.min.js';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import * as util from './util.js';
 import * as check from './checkBlock.js';
 import * as card from './cardAnimation.js';
@@ -47,9 +48,8 @@ async function main() {
 
     // 처음 시작하는 scene
     loadLevel(ingameLevel);
-    camera.position.set(0, 20, 20);
 
-    card.setTarget();  
+    card.setTarget();
 
     const gui = new GUI();
     const levelFolder = gui.addFolder('Level');
@@ -98,13 +98,7 @@ async function setupIngameScene() {
     bgTexture.encoding = THREE.sRGBEncoding;
     scene.background = bgTexture;
 
-    spheres.push(createSphere(scene, world, 1, new THREE.Vector3(5, 5, 0)));
-    spheres.push(createSphere(scene, world, 1, new THREE.Vector3(-5, 5, 0)));
-    spheres.push(createSphere(scene, world, 1, new THREE.Vector3(5, 5, 3)));
-    // spheres.push(createSphere(scene, world, 1, new THREE.Vector3(3, 5, 3)));
-    // spheres.push(createSphere(scene, world, 1, new THREE.Vector3(5, 5, 3)));
-
-    ball.createFixedSphere(scene, world, spheres, 1, new THREE.Vector3(0, 5, 0));
+    ball.createFixedSphere(scene, world, spheres, 1, new THREE.Vector3(0, 10, 20));
 
     // 이벤트
     window.addEventListener('pointerdown', (event) => ball.onPowerStart(event, spheres, camera, world));
@@ -174,6 +168,19 @@ function loadLevel(level) {
     console.log("Level Loaded");
 }
 
+function removeSpheresBelowY(spheres, thresholdY) {
+    spheres.forEach((sphere, index) => {
+        if (sphere.mesh.position.y < thresholdY) {
+            sphere.mesh.geometry.dispose();
+            sphere.mesh.material.dispose();
+            currentLevel.scene.remove(sphere.mesh);
+            spheres.splice(index, 1);
+            console.log(`sphere removed: ${sphere.mesh.position.x}, ${sphere.mesh.position.y}, ${sphere.mesh.position.z}`);
+        }
+    });
+}
+
+
 function initScene() {
     const scene = new THREE.Scene();
 
@@ -190,11 +197,14 @@ function initWorld() {
 
 function initThree() {
     renderer = util.initRenderer();
-    camera = util.initCamera();
-
+    camera = util.initCamera(new THREE.Vector3(0, 15, 35));
     stats = util.initStats();
-    orbitControls = util.initOrbitControls(camera, renderer);
-    orbitControls.target.set(0, 0, 0);
+
+    // OrbitControls
+    orbitControls = new OrbitControls(camera, renderer.domElement);
+    orbitControls.enableZoom = false;
+    orbitControls.enableDamping = true;
+    orbitControls.dampingFactor = 0.1;
 
     window.addEventListener(
         "resize",
@@ -214,6 +224,10 @@ function render() {
 
     // camera control
     orbitControls.update();
+    if (currentLevel.globals.spheres) {
+        const sphere = currentLevel.globals.spheres[0];
+        orbitControls.target.set(sphere.mesh.position.x, sphere.mesh.position.y, sphere.mesh.position.z);
+    }
 
     // 메시 위치 동기화
     if (currentLevel.globals.spheres) {
@@ -226,6 +240,9 @@ function render() {
         // collision check
         currentLevel.globals.grid.checkIntersection(currentLevel);
         currentLevel.globals.grid.updateCellHelper();
+
+        // remove spheres below y=-20
+        removeSpheresBelowY(currentLevel.globals.spheres, -20);
     }
 
     if (currentLevel.globals.grid) {
