@@ -41,6 +41,7 @@ async function main() {
     initThree();
     await RAPIER.init();
 
+
     const startLevel = await setupStartScene();
     const ingameLevel = await setupIngameScene();
     const endLevel = setupEndScene();
@@ -269,6 +270,7 @@ function render() {
         ball.createFixedSphere(levels[1].scene, levels[1].world, levels[1].globals.spheres, 1, new THREE.Vector3(0, 5, -5));
         ballcounter += 1;
         lastShotBall = null; // 새 공 생성 후 더 이상 중복 생성을 막기 위해 null
+        console.log("null로 바뀜");
     }
 
     // render current Scene

@@ -33,6 +33,8 @@ export function createFixedSphere(scene, world, spheres, radius = 1, position = 
 
     // 구의 mesh, body, checkSphere, 그리고 상태를 같이 저장
     spheres.push({ mesh: sphereMesh, body: sphereBody, checkSphere: sphere, isFixed: true });
+    console.log("새 공 생성됨: ", position);
+
 }
 
 export function onShootBall(event) {
@@ -101,7 +103,7 @@ export function updatePowerBar(value) {
     document.getElementById('power-bar').style.width = `${percent}%`;
 }
 
-export function onPowerRelease(event, spheres, camera, physicsWorld) {
+export function onPowerRelease(event, spheres, camera, physicsWorld, setLastShotBall) {
     if (!isCharging) return;
     isCharging = false;
     clearInterval(powerInterval);
