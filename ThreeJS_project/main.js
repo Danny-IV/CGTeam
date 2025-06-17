@@ -224,20 +224,33 @@ function render() {
     currentLevel.world.step();
 
     // camera control
+    console.log(lastShotBall);
     orbitControls.update();
-    if (currentLevel.globals.spheres) {
-        const sphere = currentLevel.globals.spheres[0];
-        orbitControls.target.set(sphere.mesh.position.x, sphere.mesh.position.y, sphere.mesh.position.z);
+
+    // 공이 발사 중이면, 카메라 고정, 공을 lookAt
+    if (lastShotBall) {
+        orbitControls.enabled = false;
+        camera.position.set(0, 15, 35);
+        camera.lookAt(lastShotBall.mesh.position);
+    }
+    // 공 발사 중 아니면 OrbitControl
+    else {
+        orbitControls.enabled = true;
+        if (currentLevel.globals.spheres) {
+            const sphere = currentLevel.globals.spheres[0];
+            orbitControls.target.set(sphere.mesh.position.x, sphere.mesh.position.y, sphere.mesh.position.z);
+        }
     }
 
-    // 메시 위치 동기화
     if (currentLevel.globals.spheres) {
+        // 메시 위치 동기화
         currentLevel.globals.spheres.forEach(obj => {
             const pos = obj.body.translation();
             const rot = obj.body.rotation();
             obj.mesh.position.set(pos.x, pos.y, pos.z);
             obj.mesh.quaternion.set(rot.x, rot.y, rot.z, rot.w);
         });
+
         // collision check
         currentLevel.globals.grid.checkIntersection(currentLevel);
         currentLevel.globals.grid.updateCellHelper();
