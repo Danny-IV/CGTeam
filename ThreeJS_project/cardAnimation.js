@@ -1,3 +1,5 @@
+// 좌측 상단의 카드를 회전시키고, 타겟 모양 설정하기 위한 코드
+
 import TWEEN from 'https://cdnjs.cloudflare.com/ajax/libs/tween.js/18.6.4/tween.esm.js';
 import { GUI } from 'three/addons/libs/lil-gui.module.min.js';
 

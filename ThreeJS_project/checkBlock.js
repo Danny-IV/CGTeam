@@ -1,3 +1,5 @@
+// 타겟 모양대로 공을 던졌는지 여부를 판단하는 코드 
+
 // gridCells -> controls
 export function convertGridToControls(gridCells) {
   const controls = {};
@@ -17,6 +19,7 @@ export function checkTarget(controls, target) {
   else if (target === 'T') return block_T(controls);
   else if (target === '2x2') return block_2x2(controls);
   else if (target === 'K') return block_K(controls);
+  console.log();
 }
 
 export function block_3x1_1x3(controls) {

@@ -9,9 +9,10 @@ import * as ball from './shootBall.js';
 import { loadGLTFModel, createCollider, createSphere, createGridHelper } from './createObject.js';
 import { Grid } from './grid.js';
 
-// gridCells -> controls : 
-// 랜덤으로 선택 된 카드 : card.randomTargetBlock
-// let target = '2x2';
+// gridCells -> controls : convertGridToControls(gridCells)
+// 모양 랜덤 선택 : card.checkTarget(controls, target)
+// 랜덤으로 선택 된 모양 변수 : card.randomTargetBlock
+// 모양 만족 여부 확인하기 : check.checkTarget(controls, target)
 
 // 레벨은 스테이지를 의미
 let currentLevel = { scene: null, world: null, globals: null };
@@ -48,8 +49,7 @@ async function main() {
     loadLevel(ingameLevel);
     camera.position.set(0, 20, 20);
 
-    card.setTargetGUI();   // GUI 대신 setTarget 호출하면 GUI없이 카드가 선택됨
-    // card.setTarget();  
+    card.setTarget();  
 
     const gui = new GUI();
     const levelFolder = gui.addFolder('Level');
@@ -100,6 +100,9 @@ async function setupIngameScene() {
 
     spheres.push(createSphere(scene, world, 1, new THREE.Vector3(5, 5, 0)));
     spheres.push(createSphere(scene, world, 1, new THREE.Vector3(-5, 5, 0)));
+    spheres.push(createSphere(scene, world, 1, new THREE.Vector3(5, 5, 3)));
+    // spheres.push(createSphere(scene, world, 1, new THREE.Vector3(3, 5, 3)));
+    // spheres.push(createSphere(scene, world, 1, new THREE.Vector3(5, 5, 3)));
 
     ball.createFixedSphere(scene, world, spheres, 1, new THREE.Vector3(0, 5, 0));
 
