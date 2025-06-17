@@ -9,6 +9,8 @@ import * as card from './cardAnimation.js';
 import * as ball from './shootBall.js';
 import { loadGLTFModel, createCollider, createSphere, createGridHelper } from './createObject.js';
 import { Grid } from './grid.js';
+import { FontLoader } from 'three/addons/loaders/FontLoader.js';
+import { TextGeometry } from 'three/addons/geometries/TextGeometry.js';
 
 // gridCells -> controls : convertGridToControls(gridCells)
 // 모양 랜덤 선택 : card.checkTarget(controls, target)
@@ -31,6 +33,8 @@ let ballcounter = 1;
 let spawnTimeout = null;
 let lastShotBall = null; // 최근에 날아간 공
 
+// 스톱워치용 Clock 생성
+const clock = new THREE.Clock(false); // autoStart: false
 
 main().catch(error => {
     console.error("Failed to initialize:", error);
@@ -47,14 +51,13 @@ async function main() {
 
     // 처음 시작하는 scene
     loadLevel(ingameLevel);
+    clock.start();
 
     card.setTarget();
 
-    const gui = new GUI();
-    const levelFolder = gui.addFolder('Level');
-    levelFolder.add(levels, 'currentIndex', [0, 1, 2]).name('Change Level').onChange((value) => {
-        loadLevel(levels[value]);
-    }).listen();
+    // const gui = new GUI();
+    // const endGameFolder = gui.addFolder('End Game');
+    // endGameFolder.add({ end: () => { isTargetFin = true; } }, 'end').name('End Game');
 
     render();
 }
@@ -107,7 +110,6 @@ async function setupIngameScene() {
         mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
         raycaster.setFromCamera(mouse, camera);
         const intersects = raycaster.intersectObjects(spheres.map(s => s.mesh));
-        console.log(intersects.length);
         if (intersects.length > 0) {
             ball.onPowerStart(event, spheres, camera, world);
         }
@@ -214,6 +216,15 @@ function initThree() {
     );
 }
 
+function updateStopwatchDisplay() {
+    const elapsedTime = clock.getElapsedTime();
+    const hours = Math.floor(elapsedTime / 3600);
+    const minutes = Math.floor((elapsedTime % 3600) / 60);
+    const seconds = Math.floor(elapsedTime % 60);
+    const timeString = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    document.getElementById('stopwatch').textContent = timeString;
+}
+
 function render() {
     stats.update();
     TWEEN.update();
@@ -247,11 +258,10 @@ function render() {
         });
 
         // collision check
-        currentLevel.globals.grid.checkIntersection(currentLevel);
-        currentLevel.globals.grid.updateCellHelper();
-
-        // remove spheres below y=-20
-        // removeSpheresBelowY(currentLevel.globals.spheres, -20);
+        if (currentLevel.globals.grid) {
+            currentLevel.globals.grid.checkIntersection(currentLevel);
+            currentLevel.globals.grid.updateCellHelper();
+        }
     }
 
     if (currentLevel.globals.grid) {
@@ -259,11 +269,41 @@ function render() {
         isTargetFin = check.checkTarget(controls, card.randomTargetBlock);
     }
 
+    console.log(isTargetFin);
     if (isTargetFin) {
         console.log("game end!");
-        // loadLevel(levels[2]); // Load endLevel
         isTargetFin = false;
-        requestAnimationFrame(render);
+        currentLevel.globals.grid = null;
+        clock.stop();
+        const elapsedTime = clock.getElapsedTime();
+        const hours = Math.floor(elapsedTime / 3600);
+        const minutes = Math.floor((elapsedTime % 3600) / 60);
+        const seconds = Math.floor(elapsedTime % 60);
+        const timeString = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        document.getElementById('stopwatch').textContent = timeString;
+
+        const loader = new FontLoader();
+        loader.load('https://threejs.org/examples/fonts/helvetiker_regular.typeface.json', function (font) {
+            const geometry = new TextGeometry(`GAME COMPLETE!\n${timeString}`, {
+                font: font,
+                size: 80,
+                depth: 5,
+                curveSegments: 12,
+                bevelEnabled: true,
+                bevelThickness: 10,
+                bevelSize: 8,
+                bevelOffset: 0,
+                bevelSegments: 5
+            });
+            const material = new THREE.MeshPhongMaterial({ color: 0x7a306c });
+            const textMesh = new THREE.Mesh(geometry, material);
+            textMesh.position.set(0, 0, 0);
+            currentLevel.scene.add(textMesh);
+        });
+        camera.position.set(900, 0, 900);
+        camera.lookAt(0, 0, 0);
+
+        requestAnimationFrame(justRender);
     }
     else {
         requestAnimationFrame(render);
@@ -288,6 +328,13 @@ function render() {
         lastShotBall = null;
     }
 
+    updateStopwatchDisplay();
+
     // render current Scene
     renderer.render(currentLevel.scene, camera);
+}
+
+function justRender() {
+    renderer.render(currentLevel.scene, camera);
+    requestAnimationFrame(justRender);
 }
