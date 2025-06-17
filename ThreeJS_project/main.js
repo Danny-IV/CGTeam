@@ -300,7 +300,7 @@ function render() {
             textMesh.position.set(0, 0, 0);
             currentLevel.scene.add(textMesh);
         });
-        camera.position.set(900, 0, 900);
+        camera.position.set(900, 0, 1500);
         camera.lookAt(0, 0, 0);
 
         requestAnimationFrame(justRender);
