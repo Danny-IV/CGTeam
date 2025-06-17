@@ -206,9 +206,11 @@ function initThree() {
 
 function render() {
     stats.update();
-    orbitControls.update();
     TWEEN.update();
     currentLevel.world.step();
+
+    // camera control
+    orbitControls.update();
 
     // 메시 위치 동기화
     if (currentLevel.globals.spheres) {
@@ -223,11 +225,16 @@ function render() {
         currentLevel.globals.grid.updateCellHelper();
     }
 
-    let controls = check.convertGridToControls(currentLevel.globals.grid.cells);
-    isTargetFin = check.checkTarget(controls, card.randomTargetBlock);
+    if (currentLevel.globals.grid) {
+        let controls = check.convertGridToControls(currentLevel.globals.grid.cells);
+        isTargetFin = check.checkTarget(controls, card.randomTargetBlock);
+    }
 
     if (isTargetFin) {
         console.log("game end!");
+        loadLevel(levels[2]); // Load endLevel
+        isTargetFin = false;
+        requestAnimationFrame(render);
     }
     else {
         requestAnimationFrame(render);
