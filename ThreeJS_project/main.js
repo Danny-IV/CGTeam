@@ -17,6 +17,8 @@ import { TextGeometry } from 'three/addons/geometries/TextGeometry.js';
 // 랜덤으로 선택 된 모양 변수 : card.randomTargetBlock
 // 모양 만족 여부 확인하기 : check.checkTarget(controls, target)
 
+let shootSound;
+
 // 레벨은 스테이지를 의미
 let currentLevel = { scene: null, world: null, globals: null };
 const levels = [];
@@ -33,6 +35,7 @@ let ballcounter = 1;
 let spawnTimeout = null;
 let lastShotBall = null; // 최근에 날아간 공
 
+
 // 스톱워치용 Clock 생성
 const clock = new THREE.Clock(false); // autoStart: false
 
@@ -42,6 +45,7 @@ main().catch(error => {
 
 async function main() {
     initThree();
+    initSound()
     await RAPIER.init();
 
     const startLevel = await setupStartScene();
@@ -115,9 +119,15 @@ async function setupIngameScene() {
         }
     });
     window.addEventListener('pointerup', (event) =>
-        ball.onPowerRelease(event, spheres, camera, world, (obj) => { lastShotBall = obj; })
-    );
+    ball.onPowerRelease(event, spheres, camera, world, (obj) => {
+        lastShotBall = obj;
 
+        if (shootSound && shootSound.isPlaying) {
+            shootSound.stop();
+        }
+        shootSound?.play();
+    })
+);
     // createGridHelper(scene);
     // const axesHelper = new THREE.AxesHelper(20); // 10 unit 길이의 축을 보여줌
     // scene.add(axesHelper);
@@ -214,6 +224,8 @@ function initThree() {
         },
         false
     );
+    
+    loadShootSound(camera);
 }
 
 function updateStopwatchDisplay() {
@@ -337,4 +349,35 @@ function render() {
 function justRender() {
     renderer.render(currentLevel.scene, camera);
     requestAnimationFrame(justRender);
+}
+
+function initSound() {
+    const listener = new THREE.AudioListener();
+    camera.add(listener);
+    const sound = new THREE.Audio(listener);
+
+    const audioLoader = new THREE.AudioLoader();
+    audioLoader.load('./audio/music.mp3', function(buffer) {
+        sound.setBuffer(buffer);
+        sound.setLoop(true);
+        sound.setVolume(0.4);
+
+        document.addEventListener('click', () => {
+            if (!sound.isPlaying) {
+                sound.play();
+            }
+        }, { once: true }); 
+    });
+}
+
+function loadShootSound(camera) {
+    const listener = new THREE.AudioListener();
+    camera.add(listener);
+
+    shootSound = new THREE.Audio(listener);
+    const audioLoader = new THREE.AudioLoader();
+    audioLoader.load('./audio/shoot.mp3', (buffer) => {
+        shootSound.setBuffer(buffer);
+        shootSound.setVolume(0.8);
+    });
 }
