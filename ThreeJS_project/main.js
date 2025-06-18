@@ -11,6 +11,9 @@ import { loadGLTFModel, createCollider, createSphere, createGridHelper } from '.
 import { Grid } from './grid.js';
 import { FontLoader } from 'three/addons/loaders/FontLoader.js';
 import { TextGeometry } from 'three/addons/geometries/TextGeometry.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPixelatedPass } from 'three/addons/postprocessing/RenderPixelatedPass.js';
+
 
 // gridCells -> controls : convertGridToControls(gridCells)
 // 모양 랜덤 선택 : card.checkTarget(controls, target)
@@ -27,6 +30,7 @@ const levels = [];
 let renderer, camera;
 let stats;
 let orbitControls;
+let composer;
 
 //  게임 종료 변수
 let isTargetFin = false;
@@ -62,6 +66,11 @@ async function main() {
     // const gui = new GUI();
     // const endGameFolder = gui.addFolder('End Game');
     // endGameFolder.add({ end: () => { isTargetFin = true; } }, 'end').name('End Game');
+
+    // pixelate post processing
+    composer = new EffectComposer(renderer);
+    const renderPixelatedPass = new RenderPixelatedPass(4, ingameLevel.scene, camera);
+    composer.addPass(renderPixelatedPass);
 
     render();
 }
@@ -99,6 +108,15 @@ async function setupIngameScene() {
     const world = initWorld();
     const spheres = [];
 
+    // add spotlight to the scene
+    const spotLight = new THREE.SpotLight(0xffffff, 5000);
+    spotLight.position.set(0, 30, 0);
+    spotLight.angle = Math.PI / 6;
+    spotLight.penumbra = 1;
+    spotLight.castShadow = true;
+    scene.add(spotLight);
+
+    // 배경
     const textureLoader = new THREE.TextureLoader();
     const bgTexture = textureLoader.load('./images/space.png');
     bgTexture.encoding = THREE.sRGBEncoding;
@@ -147,9 +165,17 @@ async function setupIngameScene() {
 
     const wall = await loadGLTFModel(scene, "./models/wall.glb", new THREE.Vector3(0, -1, 0));
     createCollider(wall, world);
+    // wall.traverse((object) => {
+    //     if (object.isMesh) {
+    //         object.material.color.set(0x555555); // Set color to dark gray
+    //         object.material.needsUpdate = true;
+    //     }
+    // });
+    const loader = new THREE.TextureLoader();
+    const texture = loader.load("./images/space.png");
     wall.traverse((object) => {
         if (object.isMesh) {
-            object.material.color.set(0x555555); // Set color to dark gray
+            object.material.map = texture;
             object.material.needsUpdate = true;
         }
     });
@@ -307,7 +333,7 @@ function render() {
                 bevelOffset: 0,
                 bevelSegments: 5
             });
-            const material = new THREE.MeshPhongMaterial({ color: 0x7a306c });
+            const material = new THREE.MeshPhongMaterial({ color: 0xffffff });
             const textMesh = new THREE.Mesh(geometry, material);
             textMesh.position.set(0, 0, 0);
             currentLevel.scene.add(textMesh);
@@ -343,7 +369,8 @@ function render() {
     updateStopwatchDisplay();
 
     // render current Scene
-    renderer.render(currentLevel.scene, camera);
+    // renderer.render(currentLevel.scene, camera);
+    composer.render();
 }
 
 function justRender() {
